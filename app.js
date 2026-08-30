@@ -2,12 +2,19 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://hpkzlioltmzyoalnqhgz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_57JvYsgIIi1LDnMYkew7XA_mOrQaZu2';
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'hlni-auth-v1'
+  }
+});
 
 const state={user:null,profile:null,books:[],archivedCopies:[],catalogueFilter:'ALL',selected:null};
 const $=(s,p=document)=>p.querySelector(s); const $$=(s,p=document)=>[...p.querySelectorAll(s)];
 
-function toast(message,isError=false){const el=$('#toast');el.textContent=message;el.classList.toggle('error',isError);el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),2800)}
+function toast(message,isError=false){const el=$('#toast');el.textContent=message;el.classList.toggle('error',isError);el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3600)}
 function esc(value=''){return String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
 function money(value){if(value===null||value===undefined||value==='')return '—';return new Intl.NumberFormat('ms-MY',{style:'currency',currency:'MYR'}).format(Number(value))}
 function prettyDate(value,withTime=false){if(!value)return '—';const opts=withTime?{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}:{day:'2-digit',month:'short',year:'numeric'};return new Intl.DateTimeFormat('ms-MY',opts).format(new Date(value))}
@@ -17,10 +24,83 @@ function coverHTML(url,className='book-cover'){if(url)return `<img class="${clas
 function statusLabel(status='AVAILABLE'){return({AVAILABLE:'Tersedia',BORROWED:'Dipinjam',MISSING:'Hilang',REPAIR:'Baiki',ARCHIVED:'Archive'})[status]||status}
 function bookRow(book){const copy=firstCopy(book);const shelf=copy?.shelf?.code||copy?.shelf?.name||'';const meta=[authorNames(book),book.publication_year,shelf].filter(Boolean).join(' · ');return `<button class="book-row" data-book="${book.id}">${coverHTML(book.cover_url)}<div class="book-main"><div class="book-title">${esc(book.title)}</div><div class="book-sub">${esc(meta)}</div>${copy?`<span class="status ${esc(copy.status)}">${esc(statusLabel(copy.status))}</span>`:''}</div><span class="chev">›</span></button>`}
 
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function normalizeEmail(value=''){return value.trim().toLowerCase()}
+function authErrorInfo(error){return {name:error?.name||'',code:error?.code||'',status:Number(error?.status||0),message:error?.message||''}}
+function logAuthError(context,error){const info=authErrorInfo(error);console.error(`[HLNI Auth] ${context}`,info,error)}
+function isRetryableAuthError(error){const {status,code}=authErrorInfo(error);return status===0||status>=500||['request_timeout','unexpected_failure'].includes(code)}
+function friendlyAuthError(error,action='login'){
+  const {status,code,message}=authErrorInfo(error);
+  if(status===429||['over_request_rate_limit','over_email_send_rate_limit'].includes(code)){
+    return action==='email'
+      ? 'Had penghantaran email sementara dicapai. Tunggu seketika dan cuba semula. Login biasa masih boleh digunakan.'
+      : 'Terlalu banyak cubaan log masuk dalam masa singkat. Tunggu seketika dan cuba lagi.';
+  }
+  if(code==='invalid_credentials')return 'Email atau password tidak sepadan. Pastikan guna password terbaru yang telah ditetapkan.';
+  if(code==='email_not_confirmed')return 'Email ini belum disahkan. Buka link invitation/confirmation dahulu.';
+  if(code==='user_banned')return 'Akaun ini tidak aktif. Hubungi pentadbir Home Library.';
+  if(status>=500)return 'Servis login sedang terganggu seketika. Cuba lagi dalam beberapa saat.';
+  if(/fetch|network|offline/i.test(message))return 'Sambungan internet terganggu. Semak internet dan cuba lagi.';
+  return message||'Log masuk gagal. Cuba semula.';
+}
+async function runAuthRequest(operation,{retries=1}={}){
+  let lastError=null;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const result=await operation();
+      if(result?.error){
+        lastError=result.error;
+        if(attempt<retries&&isRetryableAuthError(result.error)){await sleep(700*(attempt+1));continue}
+      }
+      return result;
+    }catch(error){
+      lastError=error;
+      if(attempt<retries&&isRetryableAuthError(error)){await sleep(700*(attempt+1));continue}
+      throw error;
+    }
+  }
+  return {data:null,error:lastError};
+}
+
 async function ensureFamilyAccess(user){const {data,error}=await supabase.from('family_members').select('active').eq('user_id',user.id).maybeSingle();if(error)throw error;return data?.active===true}
+async function ensureFamilyAccessWithRetry(user){let lastError;for(let i=0;i<3;i++){try{return await ensureFamilyAccess(user)}catch(error){lastError=error;if(i<2)await sleep(500*(i+1))}}throw lastError}
 async function loadProfile(){const {data,error}=await supabase.from('profiles').select('*').eq('id',state.user.id).maybeSingle();if(error)throw error;state.profile=data||{id:state.user.id,display_name:state.user.email?.split('@')[0]};const name=state.profile?.display_name||state.user.email?.split('@')[0]||'H';$('#profile-initial').textContent=name.trim().charAt(0).toUpperCase();$('#profile-name').value=state.profile?.display_name||'';$('#profile-email').value=state.user.email||''}
 
-async function bootstrap(){const passwordSetupRequested=location.hash.includes('type=recovery')||location.hash.includes('type=invite');const {data:{session}}=await supabase.auth.getSession();if(passwordSetupRequested&&session){state.user=session.user;showAuthReset();return}if(!session){showAuthLogin();return}try{const allowed=await ensureFamilyAccess(session.user);if(!allowed){await supabase.auth.signOut();showAuthLogin();toast('Email ini belum diluluskan sebagai ahli keluarga.',true);return}state.user=session.user;await loadProfile();showApp();await Promise.all([loadDashboard(),loadCatalogue(),loadActivity()])}catch(err){console.error(err);showAuthLogin();toast('Tak dapat sahkan akses. Cuba log masuk semula.',true)}}
+async function enterAppForUser(user){
+  const allowed=await ensureFamilyAccessWithRetry(user);
+  if(!allowed){await supabase.auth.signOut({scope:'local'});throw new Error('Email ini belum diluluskan sebagai ahli keluarga.')}
+  state.user=user;
+  await loadProfile();
+  showApp();
+  await Promise.all([loadDashboard(),loadCatalogue(),loadActivity()]);
+}
+
+async function bootstrap(){
+  const passwordSetupRequested=location.hash.includes('type=recovery')||location.hash.includes('type=invite');
+  const {data:{session},error:sessionError}=await supabase.auth.getSession();
+  if(sessionError){logAuthError('getSession',sessionError)}
+  if(passwordSetupRequested&&session){state.user=session.user;showAuthReset();return}
+  if(!session){showAuthLogin();return}
+  try{
+    const {data:userData,error:userError}=await runAuthRequest(()=>supabase.auth.getUser(),{retries:1});
+    if(userError)throw userError;
+    const user=userData?.user||session.user;
+    await enterAppForUser(user);
+  }catch(err){
+    logAuthError('bootstrap',err);
+    const {status,code}=authErrorInfo(err);
+    if(status===401||code==='session_not_found'||code==='refresh_token_not_found'||code==='refresh_token_already_used'){
+      await supabase.auth.signOut({scope:'local'});
+      showAuthLogin();
+      toast('Sesi telah tamat. Log masuk semula.',true);
+      return;
+    }
+    // Keep the local session on temporary/network failures. Do not turn a server hiccup into a fake login failure.
+    state.user=session.user;
+    showAuthLogin();
+    toast(friendlyAuthError(err,'login'),true);
+  }
+}
 function setAuthMode(mode){$('#auth-screen').classList.remove('hidden');$('#app-shell').classList.add('hidden');$('#login-form').classList.toggle('hidden',mode!=='login');$('#forgot-form').classList.toggle('hidden',mode!=='forgot');$('#reset-password-form').classList.toggle('hidden',mode!=='reset')}
 function showAuthLogin(){setAuthMode('login')}
 function showAuthForgot(){const current=$('#login-email').value.trim();if(current)$('#forgot-email').value=current;setAuthMode('forgot')}
@@ -30,7 +110,25 @@ function navigate(name,updateHash=true){const valid=['home','catalogue','add','a
 
 async function loadDashboard(){const q=[supabase.from('books').select('id',{count:'exact',head:true}).is('archived_at',null),supabase.from('copies').select('id',{count:'exact',head:true}).is('archived_at',null),supabase.from('copies').select('id',{count:'exact',head:true}).is('archived_at',null).eq('status','AVAILABLE'),supabase.from('copies').select(`id,created_at,status,accession_no,book:books(id,title,publication_year,cover_url,book_authors(author:authors(name))),shelf:shelves(code,name)`).is('archived_at',null).order('created_at',{ascending:false}).limit(6)];const [titles,copies,available,latest]=await Promise.all(q);if(titles.error||copies.error||available.error||latest.error){console.error(titles.error||copies.error||available.error||latest.error);return}$('#stat-titles').textContent=titles.count??0;$('#stat-copies').textContent=copies.count??0;$('#stat-available').textContent=available.count??0;const list=$('#latest-list');if(!latest.data?.length){list.innerHTML='<div class="empty">Belum ada buku. Tambah buku pertama melalui menu <strong>Tambah</strong>.</div>';return}list.innerHTML=latest.data.map(x=>{const b=x.book;if(!b)return '';return bookRow({...b,copies:[{...x,shelf:x.shelf}]})}).join('');bindBookRows()}
 
-async function loadCatalogue(){const {data,error}=await supabase.from('books').select(`id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),copies(id,accession_no,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`).is('archived_at',null).order('title',{ascending:true});if(error){console.error(error);toast('Tak dapat load katalog.',true);return}state.books=(data||[]).map(b=>({...b,copies:(b.copies||[]).filter(c=>!c.archived_at)}));renderCatalogue()}
+const CATALOGUE_PAGE_SIZE=500;
+async function loadCatalogue(){
+  const selectClause=`id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),copies(id,accession_no,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
+  const allBooks=[];
+  for(let from=0;;from+=CATALOGUE_PAGE_SIZE){
+    const to=from+CATALOGUE_PAGE_SIZE-1;
+    const {data,error}=await supabase.from('books')
+      .select(selectClause)
+      .is('archived_at',null)
+      .order('title',{ascending:true})
+      .order('id',{ascending:true})
+      .range(from,to);
+    if(error){console.error(error);toast('Tak dapat load katalog.',true);return}
+    allBooks.push(...(data||[]));
+    if(!data||data.length<CATALOGUE_PAGE_SIZE)break;
+  }
+  state.books=allBooks.map(b=>({...b,copies:(b.copies||[]).filter(c=>!c.archived_at)}));
+  renderCatalogue();
+}
 function renderCatalogue(){const q=$('#catalogue-search')?.value?.trim().toLowerCase()||'';const filtered=state.books.filter(book=>{const copy=firstCopy(book);const hay=[book.title,authorNames(book),book.isbn_13,book.isbn_10,book.publisher?.name,copy?.accession_no,copy?.shelf?.code].filter(Boolean).join(' ').toLowerCase();const matchQ=!q||hay.includes(q);const matchStatus=state.catalogueFilter==='ALL'||book.copies.some(c=>c.status===state.catalogueFilter);return matchQ&&matchStatus});$('#catalogue-meta').textContent=`${filtered.length} judul`;$('#catalogue-list').innerHTML=filtered.length?filtered.map(bookRow).join(''):'<div class="empty">Tiada rekod yang sepadan.</div>';bindBookRows()}
 function bindBookRows(){$$('[data-book]').forEach(el=>{el.onclick=()=>openBook(el.dataset.book)})}
 function openBook(id){const book=state.books.find(b=>b.id===id);if(!book){loadCatalogue().then(()=>openBook(id));return}state.selected=book;const copy=firstCopy(book);$('#book-detail').innerHTML=`<div class="detail-wrap"><div class="detail-top">${coverHTML(book.cover_url,'detail-cover')}<div><p class="eyebrow">BOOK RECORD</p><h3 class="detail-title">${esc(book.title)}</h3><p class="detail-author">${esc(authorNames(book))}</p>${copy?`<span class="status ${esc(copy.status)}">${esc(statusLabel(copy.status))}</span>`:''}</div></div><div class="detail-grid"><div class="detail-item"><span>Penerbit</span><strong>${esc(book.publisher?.name||'—')}</strong></div><div class="detail-item"><span>Tahun</span><strong>${esc(book.publication_year||'—')}</strong></div><div class="detail-item"><span>ISBN 13</span><strong>${esc(book.isbn_13||'—')}</strong></div><div class="detail-item"><span>Bahasa</span><strong>${esc(book.language||'—')}</strong></div><div class="detail-item"><span>No. Siri</span><strong>${esc(copy?.accession_no||copy?.legacy_serial_no||'—')}</strong></div><div class="detail-item"><span>Call No.</span><strong>${esc(copy?.legacy_call_no||'—')}</strong></div><div class="detail-item"><span>Rak</span><strong>${esc(copy?.shelf?.code||copy?.shelf?.name||'—')}</strong></div><div class="detail-item"><span>Condition</span><strong>${esc(copy?.condition||'—')}</strong></div><div class="detail-item"><span>Tarikh Beli</span><strong>${esc(copy?.acquisition_date?prettyDate(copy.acquisition_date):'—')}</strong></div><div class="detail-item"><span>Harga</span><strong>${esc(money(copy?.purchase_price))}</strong></div><div class="detail-item"><span>Dibeli Dari</span><strong>${esc(copy?.purchased_from||'—')}</strong></div><div class="detail-item"><span>Pemilik</span><strong>${esc(copy?.owner_label||'—')}</strong></div></div>${copy?.notes?`<div class="panel" style="margin-top:14px"><span class="tiny muted">NOTA</span><p>${esc(copy.notes)}</p></div>`:''}${copy?`<div class="detail-actions"><button id="detail-edit" class="btn btn-primary">Edit Rekod</button></div>`:''}</div>`;$('#book-dialog').showModal();$('#detail-edit')?.addEventListener('click',()=>openEdit(book,copy))}
@@ -47,16 +145,75 @@ function openEdit(book,copy){$('#book-dialog').close();const f=$('#edit-book-for
 async function saveEdit(e){e.preventDefault();const f=e.currentTarget;const submit=f.querySelector('button[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan…';try{const book_id=f.elements.book_id.value;const copy_id=f.elements.copy_id.value;const publisher_id=await findOrCreatePublisher(formValue(f,'publisher'));const shelf_id=await findOrCreateShelf(formValue(f,'shelf'));const {error:bookError}=await supabase.from('books').update({title:formValue(f,'title'),publication_year:formValue(f,'year')?Number(formValue(f,'year')):null,isbn_13:formValue(f,'isbn13').replace(/[^0-9Xx]/g,'')||null,publisher_id,cover_url:formValue(f,'cover_url')||null,updated_by:state.user.id}).eq('id',book_id);if(bookError)throw bookError;const {error:copyError}=await supabase.from('copies').update({accession_no:formValue(f,'accession')||null,status:formValue(f,'status')||'AVAILABLE',shelf_id,condition:formValue(f,'condition')||null,acquisition_date:formValue(f,'acquisition_date')||null,purchase_price:formValue(f,'purchase_price')?Number(formValue(f,'purchase_price')):null,purchased_from:formValue(f,'purchased_from')||null,owner_label:formValue(f,'owner_label')||null,legacy_call_no:formValue(f,'callno')||null,notes:formValue(f,'notes')||null,updated_by:state.user.id}).eq('id',copy_id);if(copyError)throw copyError;$('#edit-dialog').close();toast('Rekod dikemaskini.');await Promise.all([loadDashboard(),loadCatalogue(),loadActivity()])}catch(err){console.error(err);toast(err?.message||'Tak dapat simpan perubahan.',true)}finally{submit.disabled=false;submit.textContent='Simpan Perubahan'}}
 async function archiveSelected(){const f=$('#edit-book-form');const copy_id=f.elements.copy_id.value;if(!copy_id)return;if(!confirm('Archive naskhah ini? Ia akan dipindahkan ke Archive & Trash.'))return;try{const {error}=await supabase.rpc('archive_library_copy',{p_copy_id:copy_id});if(error)throw error;$('#edit-dialog').close();toast('Naskhah telah di-archive.');await Promise.all([loadDashboard(),loadCatalogue(),loadActivity()])}catch(err){console.error(err);toast(err?.message||'Tak dapat archive naskhah.',true)}}
 
-async function loadArchive(){if(!state.user)return;const {data,error}=await supabase.from('copies').select(`id,book_id,accession_no,status,archived_at,legacy_serial_no,book:books(id,title,cover_url,publication_year,book_authors(author:authors(name)))`).not('archived_at','is',null).order('archived_at',{ascending:false});if(error){console.error(error);toast('Tak dapat load archive.',true);return}state.archivedCopies=data||[];const list=$('#archive-list');if(!state.archivedCopies.length){list.innerHTML='<div class="empty">Archive masih kosong.</div>';return}list.innerHTML=state.archivedCopies.map(c=>`<article class="archive-card">${coverHTML(c.book?.cover_url)}<div class="archive-main"><div class="book-title">${esc(c.book?.title||'Rekod buku')}</div><div class="archive-meta">${esc(c.book?authorNames(c.book):'')} ${c.accession_no||c.legacy_serial_no?`· ${esc(c.accession_no||c.legacy_serial_no)}`:''}<br>Archived ${esc(prettyDate(c.archived_at,true))}</div></div><div class="archive-actions"><button class="btn btn-secondary" data-restore-copy="${c.id}">Restore</button><button class="btn btn-delete-permanent" data-delete-copy="${c.id}">Delete Permanently</button></div></article>`).join('');$$('[data-restore-copy]').forEach(b=>b.onclick=()=>restoreArchived(b.dataset.restoreCopy));$$('[data-delete-copy]').forEach(b=>b.onclick=()=>deleteArchived(b.dataset.deleteCopy))}
+async function loadArchive(){
+  if(!state.user)return;
+  const pageSize=500;
+  const all=[];
+  for(let from=0;;from+=pageSize){
+    const {data,error}=await supabase.from('copies')
+      .select(`id,book_id,accession_no,status,archived_at,legacy_serial_no,book:books(id,title,cover_url,publication_year,book_authors(author:authors(name)))`)
+      .not('archived_at','is',null)
+      .order('archived_at',{ascending:false})
+      .order('id',{ascending:true})
+      .range(from,from+pageSize-1);
+    if(error){console.error(error);toast('Tak dapat load archive.',true);return}
+    all.push(...(data||[]));
+    if(!data||data.length<pageSize)break;
+  }
+  state.archivedCopies=all;
+  const list=$('#archive-list');
+  if(!state.archivedCopies.length){list.innerHTML='<div class="empty">Archive masih kosong.</div>';return}
+  list.innerHTML=state.archivedCopies.map(c=>`<article class="archive-card">${coverHTML(c.book?.cover_url)}<div class="archive-main"><div class="book-title">${esc(c.book?.title||'Rekod buku')}</div><div class="archive-meta">${esc(c.book?authorNames(c.book):'')} ${c.accession_no||c.legacy_serial_no?`· ${esc(c.accession_no||c.legacy_serial_no)}`:''}<br>Archived ${esc(prettyDate(c.archived_at,true))}</div></div><div class="archive-actions"><button class="btn btn-secondary" data-restore-copy="${c.id}">Restore</button><button class="btn btn-delete-permanent" data-delete-copy="${c.id}">Delete Permanently</button></div></article>`).join('');
+  $$('[data-restore-copy]').forEach(b=>b.onclick=()=>restoreArchived(b.dataset.restoreCopy));
+  $$('[data-delete-copy]').forEach(b=>b.onclick=()=>deleteArchived(b.dataset.deleteCopy));
+}
 async function restoreArchived(copyId){try{const {error}=await supabase.rpc('restore_archived_copy',{p_copy_id:copyId});if(error)throw error;toast('Naskhah berjaya dipulihkan.');await Promise.all([loadArchive(),loadDashboard(),loadCatalogue(),loadActivity()])}catch(err){console.error(err);toast(err?.message||'Tak dapat restore naskhah.',true)}}
 async function deleteArchived(copyId){if(!confirm('Delete permanently? Data naskhah ini tidak boleh dipulihkan selepas dipadam.'))return;const typed=prompt('Untuk sahkan, taip DELETE');if(typed!=='DELETE'){toast('Permanent delete dibatalkan.');return}try{const {error}=await supabase.rpc('purge_archived_copy',{p_copy_id:copyId});if(error)throw error;toast('Naskhah telah dipadam secara kekal.');await Promise.all([loadArchive(),loadDashboard(),loadCatalogue(),loadActivity()])}catch(err){console.error(err);toast(err?.message||'Tak dapat delete naskhah.',true)}}
 
 async function loadActivity(){if(!state.user)return;const {data,error}=await supabase.from('audit_log').select('id,table_name,record_id,action,changed_by,changed_at').order('changed_at',{ascending:false}).limit(40);if(error){console.error(error);return}const ids=[...new Set((data||[]).map(x=>x.changed_by).filter(Boolean))];let profiles={};if(ids.length){const {data:p}=await supabase.from('profiles').select('id,display_name').in('id',ids);profiles=Object.fromEntries((p||[]).map(x=>[x.id,x.display_name]))}const mapTable={books:'buku',copies:'naskhah',authors:'penulis',publishers:'penerbit',shelves:'rak',collections:'koleksi',book_authors:'hubungan penulis'};const mapAction={INSERT:'menambah',UPDATE:'mengemaskini',DELETE:'memadam'};$('#activity-list').innerHTML=(data||[]).length?data.map(x=>{const who=profiles[x.changed_by]||'Family member';return `<article class="activity-row"><div class="activity-dot">${x.action==='INSERT'?'+':x.action==='UPDATE'?'↺':'×'}</div><div><strong>${esc(who)} ${esc(mapAction[x.action]||x.action.toLowerCase())} ${esc(mapTable[x.table_name]||x.table_name)}</strong><p>${esc(prettyDate(x.changed_at,true))}</p></div></article>`}).join(''):'<div class="empty">Belum ada aktiviti direkod.</div>'}
 async function saveProfile(){const name=$('#profile-name').value.trim();if(!name){toast('Masukkan nama paparan.',true);return}const {error}=await supabase.from('profiles').update({display_name:name}).eq('id',state.user.id);if(error){toast('Tak dapat simpan profile.',true);return}await loadProfile();toast('Nama profile dikemaskini.')}
 
-$('#login-form').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Memeriksa…';try{const email=$('#login-email').value.trim();const password=$('#login-password').value;const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;const allowed=await ensureFamilyAccess(data.user);if(!allowed){await supabase.auth.signOut();throw new Error('Email ini belum diluluskan sebagai ahli keluarga.')}state.user=data.user;await loadProfile();showApp();await Promise.all([loadDashboard(),loadCatalogue(),loadActivity()])}catch(err){console.error(err);toast(err?.message||'Log masuk gagal.',true)}finally{btn.disabled=false;btn.textContent='Log Masuk'}})
+let loginBusy=false;
+$('#login-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(loginBusy)return;
+  const btn=e.currentTarget.querySelector('button[type="submit"]');
+  loginBusy=true;btn.disabled=true;btn.textContent='Memeriksa…';
+  try{
+    const email=normalizeEmail($('#login-email').value);
+    const password=$('#login-password').value;
+    if(!email||!password){toast('Masukkan email dan password.',true);return}
+
+    const {data,error}=await runAuthRequest(()=>supabase.auth.signInWithPassword({email,password}),{retries:1});
+    if(error){logAuthError('signInWithPassword',error);throw error}
+    if(!data?.user||!data?.session)throw new Error('Sesi login tidak berjaya dibentuk. Cuba semula.');
+
+    await enterAppForUser(data.user);
+  }catch(err){
+    logAuthError('login',err);
+    toast(friendlyAuthError(err,'login'),true);
+  }finally{
+    loginBusy=false;btn.disabled=false;btn.textContent='Log Masuk';
+  }
+})
 $('#forgot-password-btn').addEventListener('click',showAuthForgot);$('#back-login-btn').addEventListener('click',showAuthLogin);
-$('#forgot-form').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menghantar…';try{const email=$('#forgot-email').value.trim();const redirectTo=`${location.origin}${location.pathname}`;const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;toast('Link reset password telah dihantar. Semak email.');showAuthLogin()}catch(err){console.error(err);toast(err?.message||'Tak dapat hantar link reset.',true)}finally{btn.disabled=false;btn.textContent='Hantar Link Reset'}});
-$('#reset-password-form').addEventListener('submit',async e=>{e.preventDefault();const p1=$('#new-password').value;const p2=$('#confirm-password').value;if(p1!==p2){toast('Password tidak sama.',true);return}const btn=e.currentTarget.querySelector('button');btn.disabled=true;btn.textContent='Menyimpan…';try{const {error}=await supabase.auth.updateUser({password:p1});if(error)throw error;history.replaceState(null,'',location.pathname);toast('Password baru berjaya disimpan.');await bootstrap()}catch(err){console.error(err);toast(err?.message||'Tak dapat tukar password.',true)}finally{btn.disabled=false;btn.textContent='Simpan Password Baru'}});
-$('#logout-btn').addEventListener('click',async()=>{await supabase.auth.signOut();state.user=null;state.profile=null;state.books=[];state.archivedCopies=[];showAuthLogin();toast('Anda telah log keluar.')});$('#save-profile').addEventListener('click',saveProfile);$('#add-book-form').addEventListener('submit',addBook);$('#edit-book-form').addEventListener('submit',saveEdit);$('#archive-copy').addEventListener('click',archiveSelected);$('#close-dialog').addEventListener('click',()=>$('#book-dialog').close());$('#close-edit-dialog').addEventListener('click',()=>$('#edit-dialog').close());$('#catalogue-search').addEventListener('input',renderCatalogue);$$('[data-filter]').forEach(btn=>btn.addEventListener('click',()=>{state.catalogueFilter=btn.dataset.filter;$$('[data-filter]').forEach(x=>x.classList.toggle('active',x===btn));renderCatalogue()}));$$('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.nav)));window.addEventListener('hashchange',()=>{const hash=location.hash.replace('#','');if(['home','catalogue','add','activity','profile','archive'].includes(hash)&&!$('#app-shell').classList.contains('hidden'))navigate(hash,false)});supabase.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'||(event==='SIGNED_IN'&&location.hash.includes('type=invite'))){state.user=session?.user||null;showAuthReset();return}if(event==='SIGNED_OUT')showAuthLogin();if(event==='TOKEN_REFRESHED'&&session)state.user=session.user});
+$('#forgot-form').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menghantar…';try{const email=normalizeEmail($('#forgot-email').value);const redirectTo=`${location.origin}${location.pathname}`;const {error}=await runAuthRequest(()=>supabase.auth.resetPasswordForEmail(email,{redirectTo}),{retries:0});if(error){logAuthError('resetPasswordForEmail',error);throw error}toast('Link reset password telah dihantar. Semak email.');showAuthLogin()}catch(err){logAuthError('forgot-password',err);toast(friendlyAuthError(err,'email'),true)}finally{btn.disabled=false;btn.textContent='Hantar Link Reset'}});
+$('#reset-password-form').addEventListener('submit',async e=>{e.preventDefault();const p1=$('#new-password').value;const p2=$('#confirm-password').value;if(p1!==p2){toast('Password tidak sama.',true);return}if(p1.length<8){toast('Password perlu sekurang-kurangnya 8 aksara.',true);return}const btn=e.currentTarget.querySelector('button');btn.disabled=true;btn.textContent='Menyimpan…';try{const {error}=await runAuthRequest(()=>supabase.auth.updateUser({password:p1}),{retries:1});if(error){logAuthError('updateUser password',error);throw error}history.replaceState(null,'',location.pathname);toast('Password baru berjaya disimpan.');await bootstrap()}catch(err){logAuthError('reset-password',err);toast(friendlyAuthError(err,'login'),true)}finally{btn.disabled=false;btn.textContent='Simpan Password Baru'}});
+$('#logout-btn').addEventListener('click',async()=>{await supabase.auth.signOut({scope:'local'});state.user=null;state.profile=null;state.books=[];state.archivedCopies=[];showAuthLogin();toast('Anda telah log keluar.')});
+$('#save-profile').addEventListener('click',saveProfile);$('#add-book-form').addEventListener('submit',addBook);$('#edit-book-form').addEventListener('submit',saveEdit);$('#archive-copy').addEventListener('click',archiveSelected);$('#close-dialog').addEventListener('click',()=>$('#book-dialog').close());$('#close-edit-dialog').addEventListener('click',()=>$('#edit-dialog').close());$('#catalogue-search').addEventListener('input',renderCatalogue);$$('[data-filter]').forEach(btn=>btn.addEventListener('click',()=>{state.catalogueFilter=btn.dataset.filter;$$('[data-filter]').forEach(x=>x.classList.toggle('active',x===btn));renderCatalogue()}));$$('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.nav)));window.addEventListener('hashchange',()=>{const hash=location.hash.replace('#','');if(['home','catalogue','add','activity','profile','archive'].includes(hash)&&!$('#app-shell').classList.contains('hidden'))navigate(hash,false)});
+
+// Improve password-manager behaviour on iPhone/Safari without changing the page layout.
+$('#login-email')?.setAttribute('autocomplete','email');
+$('#login-email')?.setAttribute('autocapitalize','none');
+$('#login-email')?.setAttribute('spellcheck','false');
+$('#login-password')?.setAttribute('autocomplete','current-password');
+$('#forgot-email')?.setAttribute('autocomplete','email');
+$('#new-password')?.setAttribute('autocomplete','new-password');
+$('#confirm-password')?.setAttribute('autocomplete','new-password');
+
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'||(event==='SIGNED_IN'&&location.hash.includes('type=invite'))){state.user=session?.user||null;showAuthReset();return}
+  if(event==='SIGNED_OUT'){state.user=null;showAuthLogin();return}
+  if((event==='TOKEN_REFRESHED'||event==='SIGNED_IN')&&session)state.user=session.user;
+});
 bootstrap();
