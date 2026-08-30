@@ -63,8 +63,15 @@ function readingLabel(status = '') {
 
 function publicDate(value) {
   if (!value) return '';
+  const months = [
+    'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
+    'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'
+  ];
   try {
-    return new Intl.DateTimeFormat('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(String(value));
+    const d = dateOnly ? new Date(`${value}T12:00:00`) : new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   } catch {
     return '';
   }
@@ -373,10 +380,6 @@ $$('[data-public-review-rating]').forEach(btn => btn.addEventListener('click', (
 }));
 
 $('#public-cta-browse')?.addEventListener('click', () => setPublicView('catalogue', { scroll: true }));
-$('#public-cta-search')?.addEventListener('click', () => {
-  setPublicView('catalogue', { scroll: true });
-  setTimeout(() => $('#public-search')?.focus(), 450);
-});
 
 await Promise.all([loadStats(), loadCategories()]);
 await searchCatalogue();
