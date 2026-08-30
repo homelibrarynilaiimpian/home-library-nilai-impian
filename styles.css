@@ -124,3 +124,13 @@
   .public-reading-card{grid-template-columns:62px 1fr;padding:14px}
   .public-reading-card .reading-cover{width:62px;height:92px}
 }
+
+
+/* V6.1 iOS public navigation reliability */
+.public-section-nav{position:relative!important;top:auto!important;z-index:1!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.public-section-btn{touch-action:manipulation;-webkit-tap-highlight-color:rgba(31,59,50,.08);position:relative;z-index:2}
+
+/* V6.2: star rating filters for family + public review hubs */
+.star-filter-row{align-items:center}
+.star-filter{min-width:58px;text-align:center;color:#8a681f}
+.star-filter.active{color:#fff}

@@ -24,7 +24,7 @@ const state = {
   lastLookupMeta: null,
   scanner: null,
   readingRows: [],
-  readingFilter: 'ALL'
+  reviewRating: 'ALL'
 };
 
 const $ = (s, p = document) => p.querySelector(s);
@@ -395,7 +395,7 @@ async function navigate(name, updateHash = true) {
   $(`#view-${name}`).classList.remove('hidden');
   const navName = ['archive','activity'].includes(name) ? 'profile' : name;
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === navName));
-  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Bacaan Keluarga', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
+  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Review Keluarga', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
   $('#page-title').textContent = titles[name];
   if (updateHash) history.replaceState(null, '', `#${name}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -478,7 +478,7 @@ async function loadReadingHub() {
       .range(from, from + pageSize - 1);
     if (error) {
       console.error(error);
-      $('#reading-hub-list').innerHTML = '<div class="empty">Tak dapat load bacaan keluarga sekarang.</div>';
+      $('#reading-hub-list').innerHTML = '<div class="empty">Tak dapat load review keluarga sekarang.</div>';
       return;
     }
     all.push(...(data || []));
@@ -496,9 +496,9 @@ function renderReadingHub() {
 
   const q = ($('#reading-search')?.value || '').trim().toLowerCase();
   const filtered = rows.filter(r => {
-    const matchStatus = state.readingFilter === 'ALL' || r.reading_status === state.readingFilter;
+    const matchRating = state.reviewRating === 'ALL' || Number(r.rating) === Number(state.reviewRating);
     const hay = [r.book?.title, r.reviewer?.display_name, r.review_text, readingStatusLabel(r.reading_status)].filter(Boolean).join(' ').toLowerCase();
-    return matchStatus && (!q || hay.includes(q));
+    return matchRating && (!q || hay.includes(q));
   });
 
   const list = $('#reading-hub-list');
@@ -511,7 +511,7 @@ function renderReadingHub() {
       ${r.review_text ? `<div class="review-snippet">${esc(r.review_text)}</div>` : ''}
     </div>
     <span class="chev">›</span>
-  </button>`).join('') : '<div class="empty">Tiada rekod bacaan yang sepadan.</div>';
+  </button>`).join('') : '<div class="empty">Tiada review yang sepadan dengan carian atau rating dipilih.</div>';
   $$('[data-book]', list).forEach(el => { if (el.dataset.book) el.onclick = () => openBook(el.dataset.book); });
 }
 
@@ -1474,9 +1474,9 @@ $$('[name="accession"]').forEach(el => {
 });
 
 $('#reading-search')?.addEventListener('input', renderReadingHub);
-$$('[data-reading-filter]').forEach(btn => btn.addEventListener('click', () => {
-  state.readingFilter = btn.dataset.readingFilter;
-  $$('[data-reading-filter]').forEach(x => x.classList.toggle('active', x === btn));
+$$('[data-review-rating]').forEach(btn => btn.addEventListener('click', () => {
+  state.reviewRating = btn.dataset.reviewRating || 'ALL';
+  $$('[data-review-rating]').forEach(x => x.classList.toggle('active', x === btn));
   renderReadingHub();
 }));
 

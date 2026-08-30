@@ -8,7 +8,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const state = {
   query: '', category: null, offset: 0, limit: 40, total: 0, books: new Map(), loading: false,
-  publicView: 'catalogue', readingQuery: '', readingStatus: '', readingLoading: false
+  publicView: 'catalogue', readingQuery: '', reviewRating: '', readingLoading: false
 };
 
 function esc(value=''){return String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
@@ -21,7 +21,7 @@ function publicDate(value){if(!value)return '';try{return new Intl.DateTimeForma
 
 function setupPending(error){
   const msg=(error?.message||'').toLowerCase();
-  return /public_catalogue|public_family_reading|function/.test(msg)&&(/not find|does not exist|schema cache/.test(msg));
+  return /public_catalogue|public_family_reviews|function/.test(msg)&&(/not find|does not exist|schema cache/.test(msg));
 }
 
 async function loadStats(){
@@ -103,18 +103,18 @@ async function loadPublicReading(){
   state.readingLoading=true;
   const list=$('#public-reading-list');
   const meta=$('#public-reading-meta');
-  list.innerHTML='<div class="empty">Memuatkan bacaan keluarga…</div>';
+  list.innerHTML='<div class="empty">Memuatkan review keluarga…</div>';
   try{
-    const {data,error}=await supabase.rpc('public_family_reading',{p_query:state.readingQuery||null,p_status:state.readingStatus||null,p_limit:100,p_offset:0});
+    const {data,error}=await supabase.rpc('public_family_reviews',{p_query:state.readingQuery||null,p_status:null,p_rating:state.reviewRating?Number(state.reviewRating):null,p_limit:100,p_offset:0});
     if(error)throw error;
     const rows=data||[];
     const total=Number(rows?.[0]?.total_count||0);
-    meta.textContent=`${total.toLocaleString('ms-MY')} rekod bacaan${state.readingQuery?` · carian “${state.readingQuery}”`:''}`;
-    list.innerHTML=rows.length?rows.map(publicReadingCard).join(''):'<div class="empty">Belum ada rekod bacaan yang sepadan.</div>';
+    meta.textContent=`${total.toLocaleString('ms-MY')} review keluarga${state.readingQuery?` · carian “${state.readingQuery}”`:''}`;
+    list.innerHTML=rows.length?rows.map(publicReadingCard).join(''):'<div class="empty">Belum ada review keluarga yang sepadan.</div>';
   }catch(error){
     console.error(error);
-    meta.textContent='Tak dapat load Bacaan Keluarga sekarang.';
-    list.innerHTML=setupPending(error)?'<div class="empty">Run SQL V6 dulu untuk aktifkan menu Bacaan Keluarga awam.</div>':'<div class="empty">Sila cuba refresh sebentar lagi.</div>';
+    meta.textContent='Tak dapat load Review Keluarga sekarang.';
+    list.innerHTML=setupPending(error)?'<div class="empty">Run SQL V6.2 dulu untuk aktifkan menu Review Keluarga awam.</div>':'<div class="empty">Sila cuba refresh sebentar lagi.</div>';
   }finally{state.readingLoading=false}
 }
 
@@ -134,9 +134,9 @@ $('#public-close-dialog').addEventListener('click',()=>$('#public-book-dialog').
 $$('[data-public-view]').forEach(btn=>btn.addEventListener('click',()=>setPublicView(btn.dataset.publicView)));
 let readingTimer;
 $('#public-reading-search').addEventListener('input',e=>{state.readingQuery=e.target.value.trim();clearTimeout(readingTimer);readingTimer=setTimeout(()=>loadPublicReading(),280)});
-$$('[data-public-reading-status]').forEach(btn=>btn.addEventListener('click',()=>{
-  state.readingStatus=btn.dataset.publicReadingStatus||'';
-  $$('[data-public-reading-status]').forEach(x=>x.classList.toggle('active',x===btn));
+$$('[data-public-review-rating]').forEach(btn=>btn.addEventListener('click',()=>{
+  state.reviewRating=btn.dataset.publicReviewRating||'';
+  $$('[data-public-review-rating]').forEach(x=>x.classList.toggle('active',x===btn));
   loadPublicReading();
 }));
 

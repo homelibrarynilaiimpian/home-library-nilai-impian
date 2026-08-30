@@ -8,7 +8,7 @@
   <meta name="description" content="Katalog awam Koleksi Peribadi Zamri & Nor Azzah">
   <link rel="icon" href="./assets/icon-192.png">
   <link rel="apple-touch-icon" href="./assets/icon-180.png">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=6.2.0">
 </head>
 <body class="public-body">
   <div class="public-shell">
@@ -26,12 +26,12 @@
       <article class="stat-card"><span class="stat-label">Judul</span><strong id="public-stat-titles">—</strong></article>
       <article class="stat-card"><span class="stat-label">Tersedia</span><strong id="public-stat-available">—</strong></article>
       <article class="stat-card"><span class="stat-label">Kategori</span><strong id="public-stat-categories">—</strong></article>
-      <article class="stat-card"><span class="stat-label">Bacaan Family</span><strong id="public-stat-reads">—</strong></article>
+      <article class="stat-card"><span class="stat-label">Telah Dihabiskan</span><strong id="public-stat-reads">—</strong></article>
     </div>
 
     <nav class="public-section-nav" aria-label="Menu awam">
       <button class="public-section-btn active" data-public-view="catalogue" type="button">Katalog</button>
-      <button class="public-section-btn" data-public-view="reading" type="button">Bacaan Keluarga</button>
+      <button class="public-section-btn" data-public-view="reading" type="button">Review Keluarga</button>
     </nav>
 
     <section id="public-view-catalogue">
@@ -46,17 +46,20 @@
 
     <section id="public-view-reading" class="hidden">
       <div class="section-heading standalone public-reading-heading">
-        <div><p class="eyebrow">BACAAN KELUARGA</p><h2>Apa yang family sedang & telah baca</h2><p class="muted">Visitor boleh baca rating dan review yang family pilih untuk dikongsi.</p></div>
+        <div><p class="eyebrow">REVIEW KELUARGA</p><h2>Review buku oleh family</h2><p class="muted">Visitor boleh baca rating, ulasan dan status bacaan yang dikongsi oleh family.</p></div>
       </div>
       <div class="public-reading-toolbar">
-        <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari buku, penulis atau nama family…">
-        <div class="filter-row">
-          <button class="pill active" data-public-reading-status="" type="button">Semua</button>
-          <button class="pill" data-public-reading-status="READING" type="button">Sedang Baca</button>
-          <button class="pill" data-public-reading-status="READ" type="button">Telah Dihabiskan</button>
+        <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari review, buku, penulis atau nama family…">
+        <div class="filter-row star-filter-row" aria-label="Tapis review ikut rating">
+          <button class="pill active" data-public-review-rating="" type="button">Semua</button>
+          <button class="pill star-filter" data-public-review-rating="5" type="button">5 ★</button>
+          <button class="pill star-filter" data-public-review-rating="4" type="button">4 ★</button>
+          <button class="pill star-filter" data-public-review-rating="3" type="button">3 ★</button>
+          <button class="pill star-filter" data-public-review-rating="2" type="button">2 ★</button>
+          <button class="pill star-filter" data-public-review-rating="1" type="button">1 ★</button>
         </div>
       </div>
-      <p class="public-note" id="public-reading-meta">Memuatkan bacaan keluarga…</p>
+      <p class="public-note" id="public-reading-meta">Memuatkan review keluarga…</p>
       <div id="public-reading-list" class="public-reading-list"></div>
     </section>
   </div>
@@ -66,6 +69,6 @@
     <div id="public-book-detail" class="public-detail"></div>
   </dialog>
 
-  <script type="module" src="./public.js"></script>
+  <script type="module" src="./public.js?v=6.2.0"></script>
 </body>
 </html>

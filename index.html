@@ -11,7 +11,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-180.png">
   <link rel="icon" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=6.2.0">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -86,7 +86,7 @@
 
       <section id="view-reading" class="view hidden">
         <div class="section-heading standalone">
-          <div><p class="eyebrow">BACAAN KELUARGA</p><h3>Rak Bacaan Family</h3><p class="muted">Lihat buku yang sedang dibaca dan yang telah dihabiskan, bersama rating dan review keluarga.</p></div>
+          <div><p class="eyebrow">REVIEW KELUARGA</p><h3>Review Buku Family</h3><p class="muted">Cari review keluarga dan tapis terus mengikut rating bintang.</p></div>
         </div>
         <div class="stats-grid stats-grid-two reading-stats">
           <article class="stat-card"><span class="stat-label">Sedang Baca</span><strong id="reading-stat-reading">0</strong></article>
@@ -94,10 +94,13 @@
         </div>
         <div class="reading-toolbar panel">
           <input id="reading-search" type="search" placeholder="Cari buku atau nama family…" autocomplete="off">
-          <div class="filter-row">
-            <button class="pill active" data-reading-filter="ALL">Semua</button>
-            <button class="pill" data-reading-filter="READING">Sedang Baca</button>
-            <button class="pill" data-reading-filter="READ">Telah Dihabiskan</button>
+          <div class="filter-row star-filter-row" aria-label="Tapis ikut rating">
+            <button class="pill active" data-review-rating="ALL" type="button">Semua</button>
+            <button class="pill star-filter" data-review-rating="5" type="button">5 ★</button>
+            <button class="pill star-filter" data-review-rating="4" type="button">4 ★</button>
+            <button class="pill star-filter" data-review-rating="3" type="button">3 ★</button>
+            <button class="pill star-filter" data-review-rating="2" type="button">2 ★</button>
+            <button class="pill star-filter" data-review-rating="1" type="button">1 ★</button>
           </div>
         </div>
         <div id="reading-hub-list" class="reading-hub-list"></div>
@@ -178,7 +181,7 @@
       <button class="nav-btn active" data-nav="home"><span class="nav-icon">⌂</span><span>Home</span></button>
       <button class="nav-btn" data-nav="catalogue"><span class="nav-icon">▤</span><span>Katalog</span></button>
       <button class="nav-btn add-nav" data-nav="add"><span class="nav-plus">＋</span><span>Tambah</span></button>
-      <button class="nav-btn" data-nav="reading"><span class="nav-icon">♡</span><span>Bacaan</span></button>
+      <button class="nav-btn" data-nav="reading"><span class="nav-icon">★</span><span>Review</span></button>
       <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profile</span></button>
     </nav>
   </div>
@@ -217,6 +220,6 @@
   </dialog>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=6.2.0"></script>
 </body>
 </html>
