@@ -22,3 +22,31 @@
 @media (max-width:820px){.stats-grid-four,.public-stats{grid-template-columns:repeat(2,1fr)}.public-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:620px){.two-col{grid-template-columns:1fr}.two-col .full{grid-column:auto}.hero-card{min-height:205px;padding:22px}.hero-logo{width:120px}.isbn-action-row{grid-template-columns:1fr 1fr}.isbn-action-row input{grid-column:1/-1}.review-form-grid{grid-template-columns:1fr}.review-form-grid .full{grid-column:auto}.public-header{align-items:flex-start}.public-login{padding:10px 12px;font-size:.75rem}.public-hero{grid-template-columns:1fr;padding:22px}.public-hero-logo{display:none}.public-search-panel{grid-template-columns:1fr}.public-grid{grid-template-columns:1fr}}
 @media(max-width:420px){.archive-actions{grid-column:1/-1}.archive-card .book-cover{grid-row:auto}.detail-grid{grid-template-columns:1fr}.stats-grid-four{grid-template-columns:repeat(2,1fr)}.public-brand h1{font-size:1.05rem}.public-logo{width:48px;height:48px}.public-shell{padding:12px 12px 50px}}
+
+/* HLNI one-go UX patch */
+.cover-picker{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--surface)}
+.cover-upload-preview{width:82px;height:112px;border-radius:10px;overflow:hidden;background:var(--surface2);display:grid;place-items:center}
+.cover-upload-preview img{width:100%;height:100%;object-fit:cover;display:block}.cover-upload-preview .cover-placeholder{width:100%;height:100%}
+.cover-picker input[type=file]{margin-top:8px;padding:9px;background:#fff}.category-control small{line-height:1.5}
+.reading-toolbar{display:grid;gap:12px;margin-bottom:14px}.reading-hub-list{display:grid;gap:10px}
+.reading-hub-card{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:12px;display:grid;grid-template-columns:56px 1fr auto;gap:13px;align-items:center;text-align:left}
+.reading-hub-card .reading-meta{font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:4px}.reading-hub-card .review-snippet{font-size:.8rem;margin-top:6px;line-height:1.45}
+.reading-stats{margin-top:0}.category-filter option{text-align:left}
+@media(max-width:520px){.cover-picker{grid-template-columns:82px 1fr}.cover-upload-preview{width:72px;height:100px}.reading-stats{grid-template-columns:repeat(2,1fr)}}
+
+/* ONE-GO V4 refinements */
+.stats-grid-two{grid-template-columns:repeat(2,1fr)}
+#isbnsearch-fallback{margin-top:10px;display:inline-flex;width:auto;justify-content:center}
+#isbnsearch-fallback.hidden{display:none!important}
+.category-control small,.form-stack label small{display:block;margin-top:5px;line-height:1.45}
+@media(max-width:520px){.stats-grid-two{grid-template-columns:repeat(2,1fr)}}
+
+/* ONE-GO V5: internal classification status + public family reviews */
+.classification-badge{display:inline-flex;align-items:center;width:max-content;margin-top:6px;padding:4px 8px;border:1px dashed currentColor;border-radius:999px;font-size:.72rem;font-weight:800;opacity:.72}
+.classification-info{display:block;margin-top:6px;font-size:.78rem;line-height:1.45;color:var(--muted,#6b746f)}
+.public-review-section{margin-top:22px;padding-top:18px;border-top:1px solid rgba(31,59,50,.14)}
+#public-family-reviews{display:grid;gap:10px;margin-top:12px}
+.public-review-card{padding:14px;border:1px solid rgba(31,59,50,.13);border-radius:16px;background:rgba(255,255,255,.58)}
+.public-review-card p{margin:8px 0;line-height:1.55}
+.public-review-card small{opacity:.65}
+.public-review-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start}

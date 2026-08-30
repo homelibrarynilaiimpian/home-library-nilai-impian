@@ -10,7 +10,8 @@ const state = { query: '', category: null, offset: 0, limit: 40, total: 0, books
 function esc(value=''){return String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
 function cover(url, cls='public-cover'){return url?`<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;${cls} cover-placeholder&quot;>HLNI</div>'">`:`<div class="${cls} cover-placeholder">HLNI</div>`}
 function stars(r){if(!r)return '';const n=Math.round(Number(r));return '★'.repeat(n)+'☆'.repeat(Math.max(0,5-n))}
-function chips(names=[]){return names?.length?`<div class="mini-categories">${names.slice(0,3).map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}
+function friendlyCategory(name=''){const m=String(name).match(/^([A-Z]{1,3})\s*·\s*(.+)$/);return m?`${m[2]} (${m[1]})`:String(name)}
+function chips(names=[]){return names?.length?`<div class="mini-categories">${names.slice(0,3).map(x=>`<span>${esc(friendlyCategory(x))}</span>`).join('')}</div>`:''}
 
 function setupPending(error){
   const msg=(error?.message||'').toLowerCase();
@@ -30,7 +31,7 @@ async function loadStats(){
 async function loadCategories(){
   const {data,error}=await supabase.rpc('public_catalogue_categories');
   if(error){console.error(error);return}
-  $('#public-category').innerHTML='<option value="">Semua kategori</option>'+((data||[]).map(c=>`<option value="${c.id}">${esc(c.name)}${Number(c.book_count)?` (${c.book_count})`:''}</option>`).join(''));
+  $('#public-category').innerHTML='<option value="">Semua kategori</option>'+((data||[]).map(c=>`<option value="${c.id}">${esc(friendlyCategory(c.name))}${Number(c.book_count)?` (${c.book_count})`:''}</option>`).join(''));
 }
 
 function card(b){
@@ -70,10 +71,23 @@ async function search({append=false}={}){
   }finally{state.loading=false;btn.disabled=false}
 }
 
+function readingLabel(status=''){return status==='READ'?'Telah Dihabiskan':'Sedang Baca'}
+function publicDate(value){if(!value)return '';try{return new Intl.DateTimeFormat('ms-MY',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(value))}catch{return ''}}
+
+async function loadPublicReviews(bookId){
+  const wrap=$('#public-family-reviews');if(!wrap)return;
+  const {data,error}=await supabase.rpc('public_book_reviews',{p_book_id:bookId});
+  if(error){console.error(error);wrap.innerHTML='<div class="empty compact">Review family tak dapat dimuatkan sekarang.</div>';return}
+  const rows=data||[];
+  if(!rows.length){wrap.innerHTML='<div class="empty compact">Belum ada review family untuk buku ini.</div>';return}
+  wrap.innerHTML=rows.map(r=>`<article class="public-review-card"><div class="public-review-head"><strong>${esc(r.reviewer_name||'Family member')}</strong><span class="reading-badge ${esc(r.reading_status)}">${esc(readingLabel(r.reading_status))}</span></div>${r.rating?`<div class="stars">${stars(r.rating)}</div>`:''}${r.review_text?`<p>${esc(r.review_text)}</p>`:'<p class="muted">Tiada ulasan bertulis.</p>'}<small>${esc(r.finished_at?`Selesai ${publicDate(r.finished_at)}`:r.started_at?`Mula ${publicDate(r.started_at)}`:`Dikemaskini ${publicDate(r.updated_at)}`)}</small></article>`).join('');
+}
+
 function openDetail(id){
   const b=state.books.get(id);if(!b)return;
-  $('#public-book-detail').innerHTML=`<div class="detail-top">${cover(b.cover_url,'detail-cover')}<div><p class="eyebrow">PUBLIC CATALOGUE</p><h3 class="detail-title">${esc(b.title)}</h3><p class="detail-author">${esc(b.authors||'Penulis tidak direkod')}</p>${chips(b.categories)}${b.avg_rating?`<div class="public-card-rating"><span class="stars">${stars(b.avg_rating)}</span> ${esc(b.avg_rating)} · ${Number(b.review_count)||0} review family</div>`:''}</div></div><div class="detail-grid"><div class="detail-item"><span>Penerbit</span><strong>${esc(b.publisher||'—')}</strong></div><div class="detail-item"><span>Tahun</span><strong>${esc(b.publication_year||'—')}</strong></div><div class="detail-item"><span>Status</span><strong>${b.available?'Tersedia dalam koleksi':'Tidak tersedia sekarang'}</strong></div><div class="detail-item"><span>Kategori</span><strong>${esc((b.categories||[]).join(', ')||'Belum dikategori')}</strong></div></div><p class="public-note">Maklumat rak, pemilik, harga, nota dalaman dan identiti reviewer tidak dipaparkan kepada visitor.</p>`;
+  $('#public-book-detail').innerHTML=`<div class="detail-top">${cover(b.cover_url,'detail-cover')}<div><p class="eyebrow">PUBLIC CATALOGUE</p><h3 class="detail-title">${esc(b.title)}</h3><p class="detail-author">${esc(b.authors||'Penulis tidak direkod')}</p>${chips(b.categories)}${b.avg_rating?`<div class="public-card-rating"><span class="stars">${stars(b.avg_rating)}</span> ${esc(b.avg_rating)} · ${Number(b.review_count)||0} review family</div>`:''}</div></div><div class="detail-grid"><div class="detail-item"><span>Penerbit</span><strong>${esc(b.publisher||'—')}</strong></div><div class="detail-item"><span>Tahun</span><strong>${esc(b.publication_year||'—')}</strong></div><div class="detail-item"><span>Status</span><strong>${b.available?'Tersedia dalam koleksi':'Tidak tersedia sekarang'}</strong></div><div class="detail-item"><span>Kategori</span><strong>${esc((b.categories||[]).map(friendlyCategory).join(', ')||'Lain-lain')}</strong></div></div><section class="public-review-section"><div><p class="eyebrow">BACAAN KELUARGA</p><h3>Review Family</h3></div><div id="public-family-reviews"><div class="empty compact">Memuatkan review…</div></div></section><p class="public-note">Nama paparan, rating dan review family boleh dilihat visitor. Maklumat rak, harga, nota dalaman dan audit trail kekal private.</p>`;
   $('#public-book-dialog').showModal();
+  loadPublicReviews(id);
 }
 
 let timer;

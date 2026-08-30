@@ -22,7 +22,9 @@ const state = {
   selected: null,
   round2Ready: true,
   lastLookupMeta: null,
-  scanner: null
+  scanner: null,
+  readingRows: [],
+  readingFilter: 'ALL'
 };
 
 const $ = (s, p = document) => p.querySelector(s);
@@ -65,8 +67,70 @@ function authorNames(book) {
   return names.length ? names.join(', ') : 'Penulis tidak direkod';
 }
 
+function friendlyCategoryLabel(name = '') {
+  const m = String(name).match(/^([A-Z]{1,3})\s*·\s*(.+)$/);
+  return m ? `${m[2]} (${m[1]})` : String(name);
+}
+
+function categorySortKey(name = '') {
+  return friendlyCategoryLabel(name).toLocaleLowerCase('ms-MY');
+}
+
+function categoryCode(category) {
+  const m = String(category?.name || '').match(/^([A-Z]{1,3})\s*·/);
+  return m ? m[1] : '';
+}
+
+function officialBookCategories(book) {
+  return (book?.book_categories || [])
+    .map(x => x?.category)
+    .filter(c => c && (String(c.slug || '').startsWith('lcc-') || c.slug === 'lain-lain'));
+}
+
 function categoryNames(book) {
-  return (book?.book_categories || []).map(x => x?.category?.name).filter(Boolean);
+  return officialBookCategories(book).map(c => friendlyCategoryLabel(c.name));
+}
+
+function lccPrefixFromCallNo(value = '') {
+  const m = String(value).toUpperCase().match(/(?:^|[^A-Z])([A-Z]{1,3})\s*\d/);
+  return m?.[1] || '';
+}
+
+function categoryForCallNo(value = '') {
+  const prefix = lccPrefixFromCallNo(value);
+  if (!prefix) return null;
+  return state.categories.find(c => categoryCode(c) === prefix)
+    || state.categories.find(c => categoryCode(c) === prefix.charAt(0))
+    || state.categories.find(c => c.slug === 'lain-lain')
+    || null;
+}
+
+function updateCategoryPreview(form, previewId) {
+  const preview = $(previewId);
+  if (!preview || !form) return;
+  const selected = form.elements.category_mode?.value || 'AUTO';
+  const wrapId = previewId.includes('add-') ? '#add-other-category-wrap' : '#edit-other-category-wrap';
+  const otherWrap = $(wrapId);
+  const selectedCategory = state.categories.find(x => x.id === selected);
+  const isOther = selectedCategory?.slug === 'lain-lain';
+  otherWrap?.classList.toggle('hidden', !isOther);
+
+  if (selected !== 'AUTO') {
+    preview.textContent = selectedCategory
+      ? `Manual: ${friendlyCategoryLabel(selectedCategory.name)}`
+      : 'Pilih kategori daripada senarai.';
+    return;
+  }
+
+  const callNo = form.elements.callno?.value || '';
+  const detected = categoryForCallNo(callNo);
+  if (callNo.trim() && detected && detected.slug !== 'lain-lain') {
+    preview.textContent = `Auto detect: ${friendlyCategoryLabel(detected.name)}`;
+  } else if (callNo.trim()) {
+    preview.textContent = 'Kategori paparan: Lain-lain · Status dalaman selepas simpan: Belum Disemak (Call No. tak dapat dipadankan).';
+  } else {
+    preview.textContent = 'Kategori paparan: Lain-lain · Status dalaman selepas simpan: Belum Disemak (Call No. belum diisi).';
+  }
 }
 
 function firstCopy(book) {
@@ -84,8 +148,8 @@ function statusLabel(status = 'AVAILABLE') {
   return ({ AVAILABLE: 'Tersedia', BORROWED: 'Dipinjam', MISSING: 'Hilang', REPAIR: 'Baiki', ARCHIVED: 'Archive' })[status] || status;
 }
 
-function readingStatusLabel(status = 'WANT_TO_READ') {
-  return ({ WANT_TO_READ: 'Nak Baca', READING: 'Sedang Baca', READ: 'Selesai Baca', DNF: 'Tak Dihabiskan' })[status] || status;
+function readingStatusLabel(status = 'READING') {
+  return ({ READING: 'Sedang Baca', READ: 'Telah Dihabiskan' })[status] || status;
 }
 
 function ratingStars(rating) {
@@ -99,6 +163,20 @@ function categoryChips(book) {
   return `<div class="category-chips">${names.map(name => `<span>${esc(name)}</span>`).join('')}</div>`;
 }
 
+function classificationStatusLabel(status = '') {
+  return ({
+    CONFIRMED_LCC: 'Disahkan LCC',
+    NEEDS_REVIEW: 'Belum Disemak',
+    MANUAL_LCC: 'Dipilih Manual',
+    MANUAL_OTHER: 'Lain-lain (Manual)'
+  })[status] || 'Belum Disemak';
+}
+
+function classificationBadge(book) {
+  if (book?.classification_status !== 'NEEDS_REVIEW') return '';
+  return `<span class="classification-badge">Belum Disemak</span>`;
+}
+
 function bookRow(book) {
   const copy = firstCopy(book);
   const shelf = copy?.shelf?.code || copy?.shelf?.name || '';
@@ -110,6 +188,7 @@ function bookRow(book) {
       <div class="book-title">${esc(book.title)}</div>
       <div class="book-sub">${esc(meta)}</div>
       ${cats.length ? `<div class="mini-categories">${cats.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+      ${classificationBadge(book)}
       ${copy ? `<span class="status ${esc(copy.status)}">${esc(statusLabel(copy.status))}</span>` : ''}
     </div>
     <span class="chev">›</span>
@@ -196,7 +275,7 @@ async function loadProfile() {
 }
 
 async function loadCategories() {
-  const { data, error } = await supabase.from('categories').select('id,name,slug').is('archived_at', null).order('name');
+  const { data, error } = await supabase.from('categories').select('id,name,slug').is('archived_at', null);
   if (error) {
     if (isRound2Missing(error)) {
       state.round2Ready = false;
@@ -208,16 +287,36 @@ async function loadCategories() {
     return;
   }
   state.round2Ready = true;
-  state.categories = data || [];
+  state.categories = (data || [])
+    .filter(c => String(c.slug || '').startsWith('lcc-') || c.slug === 'lain-lain')
+    .sort((a, b) => {
+      if (a.slug === 'lain-lain') return 1;
+      if (b.slug === 'lain-lain') return -1;
+      return categorySortKey(a.name).localeCompare(categorySortKey(b.name), 'ms-MY');
+    });
   renderCategoryFilter();
 }
 
 function renderCategoryFilter() {
   const select = $('#category-filter');
-  if (!select) return;
-  const current = state.catalogueCategory;
-  select.innerHTML = `<option value="ALL">Semua kategori</option><option value="UNCATEGORIZED">Belum berkategori</option>${state.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}`;
-  select.value = [...select.options].some(o => o.value === current) ? current : 'ALL';
+  const official = state.categories.filter(c => String(c.slug || '').startsWith('lcc-'));
+  const other = state.categories.find(c => c.slug === 'lain-lain');
+
+  if (select) {
+    const current = state.catalogueCategory;
+    select.innerHTML = `<option value="ALL">Semua kategori</option>${official.map(c => `<option value="${c.id}">${esc(friendlyCategoryLabel(c.name))}</option>`).join('')}${other ? `<option value="${other.id}">Lain-lain</option>` : ''}`;
+    select.value = [...select.options].some(o => o.value === current) ? current : 'ALL';
+  }
+
+  for (const form of [$('#add-book-form'), $('#edit-book-form')]) {
+    const categorySelect = form?.elements?.category_mode;
+    if (!categorySelect) continue;
+    const current = categorySelect.value || 'AUTO';
+    categorySelect.innerHTML = `<option value="AUTO">Auto ikut Call No. (Disyorkan)</option>${official.map(c => `<option value="${c.id}">${esc(friendlyCategoryLabel(c.name))}</option>`).join('')}${other ? `<option value="${other.id}">Lain-lain</option>` : ''}`;
+    categorySelect.value = [...categorySelect.options].some(o => o.value === current) ? current : 'AUTO';
+  }
+  updateCategoryPreview($('#add-book-form'), '#add-category-preview');
+  updateCategoryPreview($('#edit-book-form'), '#edit-category-preview');
 }
 
 async function enterAppForUser(user) {
@@ -273,22 +372,23 @@ function showApp() {
   $('#auth-screen').classList.add('hidden');
   $('#app-shell').classList.remove('hidden');
   const hash = location.hash.replace('#', '');
-  navigate(['home', 'catalogue', 'add', 'activity', 'profile', 'archive'].includes(hash) ? hash : 'home', false);
+  navigate(['home', 'catalogue', 'add', 'reading', 'activity', 'profile', 'archive'].includes(hash) ? hash : 'home', false);
 }
 
 async function navigate(name, updateHash = true) {
-  const valid = ['home', 'catalogue', 'add', 'activity', 'profile', 'archive'];
+  const valid = ['home', 'catalogue', 'add', 'reading', 'activity', 'profile', 'archive'];
   if (!valid.includes(name)) name = 'home';
   if (name !== 'add') await stopScanner();
   $$('.view').forEach(v => v.classList.add('hidden'));
   $(`#view-${name}`).classList.remove('hidden');
-  const navName = name === 'archive' ? 'profile' : name;
+  const navName = ['archive','activity'].includes(name) ? 'profile' : name;
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === navName));
-  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
+  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Bacaan Keluarga', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
   $('#page-title').textContent = titles[name];
   if (updateHash) history.replaceState(null, '', `#${name}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'catalogue') renderCatalogue();
+  if (name === 'reading') loadReadingHub();
   if (name === 'activity') loadActivity();
   if (name === 'archive') loadArchive();
 }
@@ -327,7 +427,7 @@ async function loadReadingDashboard() {
   if (!stat || !feed) return;
   const [countRes, recentRes] = await Promise.all([
     supabase.from('book_reviews').select('id', { count: 'exact', head: true }).eq('reading_status', 'READ'),
-    supabase.from('book_reviews').select(`id,reading_status,rating,review_text,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year)`).order('updated_at', { ascending: false }).limit(6)
+    supabase.from('book_reviews').select(`id,reading_status,rating,review_text,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year)`).in('reading_status', ['READING','READ']).order('updated_at', { ascending: false }).limit(6)
   ]);
   if (countRes.error || recentRes.error) {
     if (isRound2Missing(countRes.error || recentRes.error)) {
@@ -353,9 +453,59 @@ async function loadReadingDashboard() {
   $$('[data-book]', feed).forEach(el => el.onclick = () => openBook(el.dataset.book));
 }
 
+
+async function loadReadingHub() {
+  if (!state.user) return;
+  const pageSize = 500;
+  const all = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from('book_reviews')
+      .select(`id,user_id,reading_status,rating,review_text,started_at,finished_at,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year)`)
+      .in('reading_status', ['READING','READ'])
+      .order('updated_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) {
+      console.error(error);
+      $('#reading-hub-list').innerHTML = '<div class="empty">Tak dapat load bacaan keluarga sekarang.</div>';
+      return;
+    }
+    all.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+  }
+  state.readingRows = all;
+  renderReadingHub();
+}
+
+function renderReadingHub() {
+  const rows = state.readingRows || [];
+  const count = status => rows.filter(r => r.reading_status === status).length;
+  if ($('#reading-stat-reading')) $('#reading-stat-reading').textContent = count('READING');
+  if ($('#reading-stat-read')) $('#reading-stat-read').textContent = count('READ');
+
+  const q = ($('#reading-search')?.value || '').trim().toLowerCase();
+  const filtered = rows.filter(r => {
+    const matchStatus = state.readingFilter === 'ALL' || r.reading_status === state.readingFilter;
+    const hay = [r.book?.title, r.reviewer?.display_name, r.review_text, readingStatusLabel(r.reading_status)].filter(Boolean).join(' ').toLowerCase();
+    return matchStatus && (!q || hay.includes(q));
+  });
+
+  const list = $('#reading-hub-list');
+  if (!list) return;
+  list.innerHTML = filtered.length ? filtered.map(r => `<button class="reading-hub-card" data-book="${r.book?.id || ''}">
+    ${coverHTML(r.book?.cover_url)}
+    <div>
+      <div class="book-title">${esc(r.book?.title || 'Buku')}</div>
+      <div class="reading-meta">${esc(r.reviewer?.display_name || 'Family member')} · ${esc(readingStatusLabel(r.reading_status))}${r.rating ? ` · <span class="stars">${ratingStars(r.rating)}</span>` : ''}</div>
+      ${r.review_text ? `<div class="review-snippet">${esc(r.review_text)}</div>` : ''}
+    </div>
+    <span class="chev">›</span>
+  </button>`).join('') : '<div class="empty">Tiada rekod bacaan yang sepadan.</div>';
+  $$('[data-book]', list).forEach(el => { if (el.dataset.book) el.onclick = () => openBook(el.dataset.book); });
+}
+
 const CATALOGUE_PAGE_SIZE = 500;
-const BASE_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),copies(id,accession_no,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
-const ROUND2_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),book_categories(category:categories(id,name,slug)),copies(id,accession_no,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
+const BASE_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,metadata,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),copies(id,accession_no,source,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
+const ROUND2_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,metadata,classification_mode,manual_category_id,classification_status,classification_remark,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),book_categories(category:categories(id,name,slug)),copies(id,accession_no,source,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
 
 async function loadCatalogue() {
   const allBooks = [];
@@ -417,9 +567,10 @@ async function openBook(id) {
       <div class="detail-item"><span>Penerbit</span><strong>${esc(book.publisher?.name || '—')}</strong></div><div class="detail-item"><span>Tahun</span><strong>${esc(book.publication_year || '—')}</strong></div>
       <div class="detail-item"><span>ISBN 13</span><strong>${esc(book.isbn_13 || '—')}</strong></div><div class="detail-item"><span>Bahasa</span><strong>${esc(book.language || '—')}</strong></div>
       <div class="detail-item"><span>No. Siri</span><strong>${esc(copy?.accession_no || copy?.legacy_serial_no || '—')}</strong></div><div class="detail-item"><span>Call No.</span><strong>${esc(copy?.legacy_call_no || '—')}</strong></div>
+      <div class="detail-item"><span>Status Pengelasan</span><strong>${esc(classificationStatusLabel(book.classification_status))}</strong></div><div class="detail-item"><span>Remark Pengelasan</span><strong>${esc(book.classification_remark || '—')}</strong></div>
       <div class="detail-item"><span>Rak</span><strong>${esc(copy?.shelf?.code || copy?.shelf?.name || '—')}</strong></div><div class="detail-item"><span>Condition</span><strong>${esc(copy?.condition || '—')}</strong></div>
       <div class="detail-item"><span>Tarikh Beli</span><strong>${esc(copy?.acquisition_date ? prettyDate(copy.acquisition_date) : '—')}</strong></div><div class="detail-item"><span>Harga</span><strong>${esc(money(copy?.purchase_price))}</strong></div>
-      <div class="detail-item"><span>Dibeli Dari</span><strong>${esc(copy?.purchased_from || '—')}</strong></div><div class="detail-item"><span>Pemilik</span><strong>${esc(copy?.owner_label || '—')}</strong></div>
+      <div class="detail-item"><span>Dibeli Dari</span><strong>${esc(copy?.purchased_from || '—')}</strong></div>
     </div>
     ${copy?.notes ? `<div class="panel detail-note"><span class="tiny muted">NOTA</span><p>${esc(copy.notes)}</p></div>` : ''}
     ${copy ? `<div class="detail-actions"><button id="detail-edit" class="btn btn-secondary">Edit Rekod</button></div>` : ''}
@@ -433,7 +584,7 @@ async function openBook(id) {
 async function loadBookReviews(bookId) {
   const container = $('#family-reviews');
   if (!container) return;
-  const { data, error } = await supabase.from('book_reviews').select(`id,user_id,reading_status,rating,review_text,started_at,finished_at,updated_at,reviewer:profiles(display_name)`).eq('book_id', bookId).order('updated_at', { ascending: false });
+  const { data, error } = await supabase.from('book_reviews').select(`id,user_id,reading_status,rating,review_text,started_at,finished_at,updated_at,reviewer:profiles(display_name)`).eq('book_id', bookId).in('reading_status', ['READING','READ']).order('updated_at', { ascending: false });
   if (error) {
     if (isRound2Missing(error)) {
       state.round2Ready = false;
@@ -457,7 +608,7 @@ async function loadBookReviews(bookId) {
     <form id="my-review-form" class="panel review-form">
       <div><p class="eyebrow">REKOD SAYA</p><h3>Status & Review Saya</h3></div>
       <div class="review-form-grid">
-        <label><span>Status</span><select name="reading_status"><option value="WANT_TO_READ">Nak Baca</option><option value="READING">Sedang Baca</option><option value="READ">Selesai Baca</option><option value="DNF">Tak Dihabiskan</option></select></label>
+        <label><span>Status</span><select name="reading_status"><option value="READING">Sedang Baca</option><option value="READ">Telah Dihabiskan</option></select></label>
         <label><span>Rating</span><select name="rating"><option value="">Tiada rating</option><option value="5">★★★★★ 5</option><option value="4">★★★★☆ 4</option><option value="3">★★★☆☆ 3</option><option value="2">★★☆☆☆ 2</option><option value="1">★☆☆☆☆ 1</option></select></label>
         <label><span>Mula Baca</span><input name="started_at" type="date"></label><label><span>Selesai Baca</span><input name="finished_at" type="date"></label>
         <label class="full"><span>Review</span><textarea name="review_text" rows="4" placeholder="Apa pendapat tentang buku ni?"></textarea></label>
@@ -465,7 +616,7 @@ async function loadBookReviews(bookId) {
       <div class="action-row"><button class="btn btn-primary" type="submit">Simpan Bacaan</button>${mine ? '<button id="delete-my-review" class="btn btn-danger" type="button">Padam Rekod Saya</button>' : ''}</div>
     </form>`;
   const form = $('#my-review-form');
-  form.elements.reading_status.value = mine?.reading_status || 'WANT_TO_READ';
+  form.elements.reading_status.value = ['READING','READ'].includes(mine?.reading_status) ? mine.reading_status : 'READING';
   form.elements.rating.value = mine?.rating || '';
   form.elements.started_at.value = mine?.started_at || '';
   form.elements.finished_at.value = mine?.finished_at || '';
@@ -483,7 +634,7 @@ async function saveMyReview(e, bookId) {
     const payload = {
       book_id: bookId,
       user_id: state.user.id,
-      reading_status: formValue(form, 'reading_status') || 'WANT_TO_READ',
+      reading_status: formValue(form, 'reading_status') || 'READING',
       rating: formValue(form, 'rating') ? Number(formValue(form, 'rating')) : null,
       review_text: formValue(form, 'review_text') || null,
       started_at: formValue(form, 'started_at') || null,
@@ -510,8 +661,33 @@ async function deleteMyReview(bookId) {
 }
 
 function formValue(form, name) { return form.elements[name]?.value?.trim() || ''; }
-function parseCategoryNames(value = '') {
-  return [...new Set(value.split(/[,;]+/).map(x => x.trim()).filter(Boolean))];
+function parseAuthorNames(value = '') {
+  return [...new Set(String(value).split(/[;\n]+/).map(x => x.trim()).filter(Boolean))];
+}
+
+function normalizeAccession(value = '', strictNew = false) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d+$/.test(raw)) {
+    if (strictNew && raw.length > 6) throw new Error('No. Siri baru mesti 6 digit, contoh 000044.');
+    return raw.length <= 6 ? raw.padStart(6, '0') : raw;
+  }
+  if (strictNew) throw new Error('No. Siri baru mesti nombor 6 digit, contoh 000044.');
+  return raw;
+}
+
+async function ensureUniqueAccession(accession, excludeCopyId = null) {
+  if (!accession) return;
+  let q = supabase.from('copies').select('id').eq('accession_no', accession).is('archived_at', null).limit(1);
+  if (excludeCopyId) q = q.neq('id', excludeCopyId);
+  const { data, error } = await q;
+  if (error) throw error;
+  if (data?.length) throw new Error(`No. Siri ${accession} sudah digunakan oleh naskhah lain.`);
+}
+
+function formatAccessionField(el) {
+  if (!el || !el.value.trim()) return;
+  try { el.value = normalizeAccession(el.value, false); } catch (_) {}
 }
 
 async function findOrCreatePublisher(name) {
@@ -568,23 +744,57 @@ async function findOrCreateCategory(name) {
   return data.id;
 }
 
-async function syncBookCategories(bookId, names) {
-  if (!state.round2Ready && !names.length) return;
-  try {
-    const ids = [];
-    for (const name of names) ids.push(await findOrCreateCategory(name));
-    const del = await supabase.from('book_categories').delete().eq('book_id', bookId);
-    if (del.error) throw del.error;
-    if (ids.length) {
-      const rows = ids.map(category_id => ({ book_id: bookId, category_id, created_by: state.user.id }));
-      const ins = await supabase.from('book_categories').insert(rows);
-      if (ins.error) throw ins.error;
-    }
-  } catch (error) {
-    if (isRound2Missing(error)) { state.round2Ready = false; return; }
-    throw error;
-  }
+async function applyBookClassification(bookId, form) {
+  const value = form.elements.category_mode?.value || 'AUTO';
+  const mode = value === 'AUTO' ? 'AUTO' : 'MANUAL';
+  const categoryId = mode === 'MANUAL' ? value : null;
+  const { error } = await supabase.rpc('hlni_set_book_classification', {
+    p_book_id: bookId,
+    p_mode: mode,
+    p_category_id: categoryId
+  });
+  if (error) throw error;
 }
+
+async function replaceBookAuthors(bookId, authorList) {
+  const clean = [...new Set((authorList || []).map(x => x.trim()).filter(Boolean))];
+  if (!clean.length) throw new Error('Sekurang-kurangnya seorang penulis diperlukan.');
+  const { error } = await supabase.rpc('hlni_replace_book_authors', {
+    p_book_id: bookId,
+    p_author_names: clean
+  });
+  if (error) throw error;
+}
+
+function renderCoverPreview(target, url = '') {
+  const el = $(target);
+  if (!el) return;
+  el.innerHTML = url
+    ? `<img src="${esc(url)}" alt="Cover buku" onerror="this.parentElement.innerHTML='<div class=&quot;cover-placeholder&quot;>HLNI</div>'">`
+    : '<div class="cover-placeholder">HLNI</div>';
+}
+
+async function resolveCoverUrl(form, key = 'book') {
+  const input = form.elements.cover_file;
+  const file = input?.files?.[0];
+  if (!file) return form.elements.cover_url?.value?.trim() || null;
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) throw new Error('Cover mesti format JPG, PNG atau WEBP.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Saiz cover maksimum 5MB.');
+  const ext = file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : 'jpg';
+  const safeKey = String(key || 'book').replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 70) || 'book';
+  const path = `${state.user.id}/${safeKey}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('book-covers').upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
+  return data?.publicUrl || null;
+}
+
+function formatPriceField(el) {
+  if (!el || el.value === '') return;
+  const n = Number(el.value);
+  if (Number.isFinite(n)) el.value = n.toFixed(2);
+}
+
 
 async function addBook(e) {
   e.preventDefault();
@@ -593,23 +803,27 @@ async function addBook(e) {
   submit.disabled = true; submit.textContent = 'Menyimpan…';
   try {
     const title = formValue(form, 'title');
-    const authorList = formValue(form, 'authors').split(',').map(x => x.trim()).filter(Boolean);
+    const authorList = parseAuthorNames(formValue(form, 'authors'));
     const isbn13 = formValue(form, 'isbn13').replace(/[^0-9Xx]/g, '');
     const year = formValue(form, 'year');
     const publisherName = formValue(form, 'publisher');
     const shelfCode = formValue(form, 'shelf');
-    const categories = parseCategoryNames(formValue(form, 'categories'));
+    const selectedCover = await resolveCoverUrl(form, isbn13 || slugify(title));
+    const accession = normalizeAccession(formValue(form, 'accession'), true);
+    await ensureUniqueAccession(accession);
     let book = null;
+    let isNewBook = false;
 
     if (isbn13) {
-      const { data, error } = await supabase.from('books').select('id').eq('isbn_13', isbn13).is('archived_at', null).limit(1);
+      const { data, error } = await supabase.from('books').select('id,cover_url,metadata').eq('isbn_13', isbn13).is('archived_at', null).limit(1);
       if (error) throw error;
       book = data?.[0] || null;
     }
 
     if (!book) {
+      isNewBook = true;
       const publisher_id = await findOrCreatePublisher(publisherName);
-      const metadata = state.lastLookupMeta?.isbn === isbn13 ? state.lastLookupMeta : {};
+      const metadata = { ...(state.lastLookupMeta?.isbn === isbn13 ? state.lastLookupMeta : {}), other_category_note: formValue(form, 'category_note') || null };
       const { data, error } = await supabase.from('books').insert({
         title,
         isbn_13: isbn13 || null,
@@ -617,7 +831,7 @@ async function addBook(e) {
         language: formValue(form, 'language') || null,
         description: formValue(form, 'description') || null,
         publisher_id,
-        cover_url: formValue(form, 'cover_url') || null,
+        cover_url: selectedCover,
         source: 'WEBSITE',
         metadata,
         created_by: state.user.id,
@@ -625,13 +839,18 @@ async function addBook(e) {
       }).select('id').single();
       if (error) throw error;
       book = data;
-      for (let i = 0; i < authorList.length; i++) {
-        const author_id = await findOrCreateAuthor(authorList[i]);
-        const link = await supabase.from('book_authors').insert({ book_id: book.id, author_id, author_order: i + 1, created_by: state.user.id, updated_by: state.user.id });
-        if (link.error) throw link.error;
-      }
+      await replaceBookAuthors(book.id, authorList);
     } else {
       toast('ISBN sudah wujud — naskhah baru ditambah pada judul sedia ada.');
+      const existingUpdates = { updated_by: state.user.id };
+      if (form.elements.cover_file?.files?.[0] && selectedCover) existingUpdates.cover_url = selectedCover;
+      if (formValue(form, 'category_note')) {
+        existingUpdates.metadata = { ...(book.metadata || {}), other_category_note: formValue(form, 'category_note') };
+      }
+      if (Object.keys(existingUpdates).length > 1) {
+        const up = await supabase.from('books').update(existingUpdates).eq('id', book.id);
+        if (up.error) throw up.error;
+      }
     }
 
     const [collection_id, shelf_id] = await Promise.all([getPrimaryCollection(), findOrCreateShelf(shelfCode)]);
@@ -639,8 +858,7 @@ async function addBook(e) {
       book_id: book.id,
       collection_id,
       shelf_id,
-      accession_no: formValue(form, 'accession') || null,
-      owner_label: formValue(form, 'owner_label') || null,
+      accession_no: accession || null,
       acquisition_date: formValue(form, 'acquisition_date') || null,
       purchase_price: formValue(form, 'purchase_price') ? Number(formValue(form, 'purchase_price')) : null,
       purchased_from: formValue(form, 'purchased_from') || null,
@@ -654,17 +872,19 @@ async function addBook(e) {
     });
     if (copy.error) throw copy.error;
 
-    if (categories.length) {
-      try { await syncBookCategories(book.id, categories); }
-      catch (catError) { console.error(catError); toast('Buku disimpan, tetapi kategori gagal disimpan. Boleh tambah semula melalui Edit.', true); }
-    }
+    await applyBookClassification(book.id, form);
 
     form.reset();
+    form.elements.category_mode.value = 'AUTO';
+    form.elements.cover_url.value = '';
     $('#quick-isbn').value = '';
-    $('#metadata-status').textContent = 'Metadata akan dicari melalui sumber buku awam. Kalau tak jumpa, isi manual seperti biasa.';
+    $('#metadata-status').textContent = 'Metadata akan dicari melalui Google Books dan Open Library. Call No. tidak diisi automatik.';
+    $('#isbnsearch-fallback')?.classList.add('hidden');
+    renderCoverPreview('#add-cover-preview', '');
+    updateCategoryPreview(form, '#add-category-preview');
     state.lastLookupMeta = null;
-    toast('Buku berjaya disimpan.');
-    await Promise.all([loadCategories(), loadDashboard(), loadCatalogue(), loadActivity()]);
+    toast(isNewBook ? 'Buku berjaya disimpan.' : 'Naskhah baru berjaya ditambah.');
+    await Promise.all([loadCategories(), loadDashboard(), loadCatalogue(), loadActivity(), loadReadingHub()]);
     navigate('catalogue');
   } catch (err) {
     console.error(err);
@@ -679,23 +899,29 @@ function openEdit(book, copy) {
   const f = $('#edit-book-form');
   f.elements.book_id.value = book.id;
   f.elements.copy_id.value = copy.id;
+  f.elements.copy_source.value = copy.source || 'ACCESS_2015';
   f.elements.title.value = book.title || '';
+  f.elements.authors.value = authorNames(book) === 'Penulis tidak direkod' ? '' : (book.book_authors || []).map(x => x?.author?.name).filter(Boolean).join('; ');
   f.elements.year.value = book.publication_year || '';
   f.elements.isbn13.value = book.isbn_13 || '';
   f.elements.publisher.value = book.publisher?.name || '';
-  f.elements.categories.value = categoryNames(book).join(', ');
+  f.elements.category_mode.value = book.classification_mode === 'MANUAL' && book.manual_category_id ? book.manual_category_id : 'AUTO';
+  f.elements.category_note.value = book.metadata?.other_category_note || '';
   f.elements.accession.value = copy.accession_no || '';
   f.elements.status.value = copy.status === 'ARCHIVED' ? 'AVAILABLE' : copy.status;
   f.elements.shelf.value = copy.shelf?.code || copy.shelf?.name || '';
   f.elements.condition.value = copy.condition || '';
   f.elements.acquisition_date.value = copy.acquisition_date || '';
-  f.elements.purchase_price.value = copy.purchase_price ?? '';
+  f.elements.purchase_price.value = copy.purchase_price === null || copy.purchase_price === undefined ? '' : Number(copy.purchase_price).toFixed(2);
   f.elements.purchased_from.value = copy.purchased_from || '';
-  f.elements.owner_label.value = copy.owner_label || '';
   f.elements.callno.value = copy.legacy_call_no || '';
   f.elements.cover_url.value = book.cover_url || '';
   f.elements.description.value = book.description || '';
   f.elements.notes.value = copy.notes || '';
+  renderCoverPreview('#edit-cover-preview', book.cover_url || '');
+  updateCategoryPreview(f, '#edit-category-preview');
+  const classificationInfo = $('#edit-classification-status');
+  if (classificationInfo) classificationInfo.textContent = `Status semasa: ${classificationStatusLabel(book.classification_status)}${book.classification_remark ? ` · ${book.classification_remark}` : ''}`;
   $('#edit-dialog').showModal();
 }
 
@@ -709,38 +935,45 @@ async function saveEdit(e) {
     const copy_id = f.elements.copy_id.value;
     const publisher_id = await findOrCreatePublisher(formValue(f, 'publisher'));
     const shelf_id = await findOrCreateShelf(formValue(f, 'shelf'));
+    const coverUrl = await resolveCoverUrl(f, book_id);
+    const accession = normalizeAccession(formValue(f, 'accession'), f.elements.copy_source.value === 'WEBSITE');
+    const selectedBook = state.books.find(b => b.id === book_id);
+    const originalCopy = selectedBook?.copies?.find(c => c.id === copy_id);
+    if (accession !== (originalCopy?.accession_no || '')) await ensureUniqueAccession(accession, copy_id);
+    const mergedMetadata = { ...(selectedBook?.metadata || {}), other_category_note: formValue(f, 'category_note') || null };
     const bookUpdate = await supabase.from('books').update({
       title: formValue(f, 'title'),
       publication_year: formValue(f, 'year') ? Number(formValue(f, 'year')) : null,
       isbn_13: formValue(f, 'isbn13').replace(/[^0-9Xx]/g, '') || null,
       publisher_id,
-      cover_url: formValue(f, 'cover_url') || null,
+      cover_url: coverUrl,
       description: formValue(f, 'description') || null,
+      metadata: mergedMetadata,
       updated_by: state.user.id
     }).eq('id', book_id);
     if (bookUpdate.error) throw bookUpdate.error;
 
+    await replaceBookAuthors(book_id, parseAuthorNames(formValue(f, 'authors')));
+
     const copyUpdate = await supabase.from('copies').update({
-      accession_no: formValue(f, 'accession') || null,
+      accession_no: accession || null,
       status: formValue(f, 'status') || 'AVAILABLE',
       shelf_id,
       condition: formValue(f, 'condition') || null,
       acquisition_date: formValue(f, 'acquisition_date') || null,
       purchase_price: formValue(f, 'purchase_price') ? Number(formValue(f, 'purchase_price')) : null,
       purchased_from: formValue(f, 'purchased_from') || null,
-      owner_label: formValue(f, 'owner_label') || null,
       legacy_call_no: formValue(f, 'callno') || null,
       notes: formValue(f, 'notes') || null,
       updated_by: state.user.id
     }).eq('id', copy_id);
     if (copyUpdate.error) throw copyUpdate.error;
 
-    try { await syncBookCategories(book_id, parseCategoryNames(formValue(f, 'categories'))); }
-    catch (catError) { console.error(catError); toast('Rekod utama disimpan, tetapi kategori gagal dikemaskini.', true); }
+    await applyBookClassification(book_id, f);
 
     $('#edit-dialog').close();
     toast('Rekod dikemaskini.');
-    await Promise.all([loadCategories(), loadDashboard(), loadCatalogue(), loadActivity()]);
+    await Promise.all([loadCategories(), loadDashboard(), loadCatalogue(), loadActivity(), loadReadingHub()]);
   } catch (err) {
     console.error(err);
     toast(err?.message || 'Tak dapat simpan perubahan.', true);
@@ -830,25 +1063,14 @@ async function saveProfile() {
 
 function normalizeISBN(value = '') { return value.replace(/[^0-9Xx]/g, ''); }
 function extractYear(value = '') { const m = String(value).match(/\b(18|19|20)\d{2}\b/); return m ? Number(m[0]) : null; }
-function mapExternalCategories(values = []) {
-  const text = values.join(' ').toLowerCase();
-  const rules = [
-    [/islam|religion|quran|koran|hadith|muslim|sufism|theology/, 'Agama & Islam'],
-    [/juvenile|children|young adult|kids|child/, 'Kanak-kanak & Remaja'],
-    [/fiction|novel|short stor|literature/, 'Fiksyen & Novel'],
-    [/history|biograph|memoir/, 'Sejarah & Biografi'],
-    [/law|legal|jurisprudence/, 'Undang-undang'],
-    [/education|teaching|school|study/, 'Pendidikan'],
-    [/business|finance|econom|management|career/, 'Perniagaan & Kewangan'],
-    [/science|technology|computer|nature|medical|medicine|engineering|astronomy|biology|physics|chemistry/, 'Sains & Teknologi'],
-    [/psychology|self-help|self help|motivation|personal development/, 'Psikologi & Pembangunan Diri'],
-    [/politic|social science|society|government|public administration/, 'Politik & Masyarakat'],
-    [/language|linguistic|literary criticism|poetry/, 'Bahasa & Sastera'],
-    [/reference|encyclopedia|dictionary|handbook/, 'Rujukan & Umum']
-  ];
-  return [...new Set(rules.filter(([rx]) => rx.test(text)).map(([, name]) => name))];
-}
 function setFormIf(form, name, value, force = true) { if (value === undefined || value === null || value === '') return; const el = form.elements[name]; if (el && (force || !el.value)) el.value = value; }
+
+function setISBNsearchFallback(isbn, visible) {
+  const link = $('#isbnsearch-fallback');
+  if (!link) return;
+  if (isbn) link.href = `https://isbnsearch.org/isbn/${encodeURIComponent(isbn)}`;
+  link.classList.toggle('hidden', !visible);
+}
 
 async function lookupISBN(rawISBN) {
   const isbn = normalizeISBN(rawISBN || $('#quick-isbn').value || $('#add-isbn13').value);
@@ -858,6 +1080,7 @@ async function lookupISBN(rawISBN) {
   const status = $('#metadata-status');
   status.textContent = 'Mencari metadata buku…';
   $('#lookup-isbn-btn').disabled = true;
+  setISBNsearchFallback(isbn, false);
   try {
     let meta = null;
     try {
@@ -907,25 +1130,52 @@ async function lookupISBN(rawISBN) {
     }
 
     if (!meta) {
+      try {
+        const res = await fetch(`https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1&fields=title,author_name,publisher,first_publish_year,language,cover_i,subject`);
+        if (res.ok) {
+          const json = await res.json();
+          const v = json?.docs?.[0];
+          if (v?.title) {
+            meta = {
+              isbn,
+              lookup_source: 'OPEN_LIBRARY_SEARCH',
+              title: v.title,
+              authors: v.author_name || [],
+              publisher: v.publisher?.[0] || '',
+              year: v.first_publish_year || null,
+              language: v.language?.[0] || '',
+              description: '',
+              cover_url: v.cover_i ? `https://covers.openlibrary.org/b/id/${v.cover_i}-L.jpg` : '',
+              categories: (v.subject || []).slice(0, 5)
+            };
+          }
+        }
+      } catch (e) { console.warn('Open Library search lookup failed', e); }
+    }
+
+    if (!meta) {
       state.lastLookupMeta = null;
-      status.textContent = 'ISBN dijumpai pada barcode, tetapi metadata awam tak tersedia. Isi maklumat manual.';
-      toast('Metadata tak dijumpai. ISBN dah diisi untuk anda.', true);
+      status.textContent = 'Tak jumpa pada Google Books / Open Library. ISBN sudah diisi. Boleh semak rekod yang sama di ISBNsearch.org, kemudian isi maklumat manual.';
+      setISBNsearchFallback(isbn, true);
+      toast('Metadata tak dijumpai pada sumber auto. Cuba ISBNsearch.org.', true);
       return;
     }
 
     state.lastLookupMeta = meta;
     const form = $('#add-book-form');
     setFormIf(form, 'title', meta.title);
-    setFormIf(form, 'authors', meta.authors.join(', '));
+    setFormIf(form, 'authors', meta.authors.join('; '));
     setFormIf(form, 'publisher', meta.publisher);
     setFormIf(form, 'year', meta.year);
     setFormIf(form, 'language', meta.language);
     setFormIf(form, 'description', meta.description);
     setFormIf(form, 'cover_url', meta.cover_url);
     setFormIf(form, 'isbn13', isbn);
-    const suggestedCategories = mapExternalCategories(meta.categories);
-    if (suggestedCategories.length && !form.elements.categories.value) form.elements.categories.value = suggestedCategories.join(', ');
-    status.innerHTML = `Jumpa: <strong>${esc(meta.title)}</strong> · ${esc(meta.lookup_source === 'GOOGLE_BOOKS' ? 'Google Books' : 'Open Library')}${suggestedCategories.length ? ` · cadangan kategori: ${suggestedCategories.map(esc).join(', ')}` : ''}. Semak maklumat sebelum simpan.`;
+    renderCoverPreview('#add-cover-preview', meta.cover_url || '');
+    updateCategoryPreview(form, '#add-category-preview');
+    const subjects = (meta.categories || []).slice(0, 3);
+    const sourceLabel = meta.lookup_source === 'GOOGLE_BOOKS' ? 'Google Books' : 'Open Library';
+    status.innerHTML = `Jumpa: <strong>${esc(meta.title)}</strong> · ${esc(sourceLabel)}${subjects.length ? ` · subjek metadata: ${subjects.map(esc).join(', ')}` : ''}. <strong>Call No. tidak diisi automatik</strong>; isi manual jika ada.`;
     toast('Metadata buku berjaya diisi.');
   } catch (err) {
     console.error(err);
@@ -1054,6 +1304,38 @@ $('#quick-isbn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.p
 $('#add-isbn13').addEventListener('input', e => { if (!$('#quick-isbn').value) $('#quick-isbn').value = e.target.value; });
 $('#scan-isbn-btn').addEventListener('click', async () => { if (state.scanner) await stopScanner(); else await startScanner(); });
 
+
+$('#add-book-form').elements.callno?.addEventListener('input', () => updateCategoryPreview($('#add-book-form'), '#add-category-preview'));
+$('#edit-book-form').elements.callno?.addEventListener('input', () => updateCategoryPreview($('#edit-book-form'), '#edit-category-preview'));
+$('#add-book-form').elements.category_mode?.addEventListener('change', () => updateCategoryPreview($('#add-book-form'), '#add-category-preview'));
+$('#edit-book-form').elements.category_mode?.addEventListener('change', () => updateCategoryPreview($('#edit-book-form'), '#edit-category-preview'));
+
+$('#add-book-form').elements.cover_file?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (!file) return renderCoverPreview('#add-cover-preview', $('#add-book-form').elements.cover_url.value || '');
+  renderCoverPreview('#add-cover-preview', URL.createObjectURL(file));
+});
+$('#edit-book-form').elements.cover_file?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (!file) return renderCoverPreview('#edit-cover-preview', $('#edit-book-form').elements.cover_url.value || '');
+  renderCoverPreview('#edit-cover-preview', URL.createObjectURL(file));
+});
+
+$$('[name="purchase_price"]').forEach(el => {
+  el.addEventListener('blur', () => formatPriceField(el));
+});
+
+$$('[name="accession"]').forEach(el => {
+  el.addEventListener('blur', () => formatAccessionField(el));
+});
+
+$('#reading-search')?.addEventListener('input', renderReadingHub);
+$$('[data-reading-filter]').forEach(btn => btn.addEventListener('click', () => {
+  state.readingFilter = btn.dataset.readingFilter;
+  $$('[data-reading-filter]').forEach(x => x.classList.toggle('active', x === btn));
+  renderReadingHub();
+}));
+
 $$('[data-filter]').forEach(btn => btn.addEventListener('click', () => {
   state.catalogueFilter = btn.dataset.filter;
   $$('[data-filter]').forEach(x => x.classList.toggle('active', x === btn));
@@ -1062,7 +1344,7 @@ $$('[data-filter]').forEach(btn => btn.addEventListener('click', () => {
 $$('[data-nav]').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.nav)));
 window.addEventListener('hashchange', () => {
   const hash = location.hash.replace('#', '');
-  if (['home', 'catalogue', 'add', 'activity', 'profile', 'archive'].includes(hash) && !$('#app-shell').classList.contains('hidden')) navigate(hash, false);
+  if (['home', 'catalogue', 'add', 'reading', 'activity', 'profile', 'archive'].includes(hash) && !$('#app-shell').classList.contains('hidden')) navigate(hash, false);
 });
 
 $('#login-email')?.setAttribute('autocomplete', 'email');
