@@ -6,61 +6,98 @@
   <meta name="theme-color" content="#1f3b32">
   <title>Katalog Awam · Home Library Nilai Impian</title>
   <meta name="description" content="Katalog awam Koleksi Peribadi Zamri & Nor Azzah">
-  <link rel="icon" href="./assets/icon-192.png">
-  <link rel="apple-touch-icon" href="./assets/icon-180.png">
+  <link rel="icon" href="./assets/icon-192.png?v=8.0.1">
+  <link rel="apple-touch-icon" href="./assets/icon-180.png?v=8.0.1">
   <link rel="stylesheet" href="./styles.css?v=6.2.0">
+  <link rel="stylesheet" href="./final-v8.css?v=8.0.0">
 </head>
-<body class="public-body">
-  <div class="public-shell">
-    <header class="public-header">
-      <div class="public-brand"><img class="public-logo" src="./assets/logo-main.jpeg" alt="Home Library Nilai Impian"><div><h1>Home Library Nilai Impian</h1><p>Koleksi Peribadi Zamri &amp; Nor Azzah</p></div></div>
-      <a class="btn btn-secondary public-login" href="./index.html">Family Login</a>
+<body class="public-body public-v8">
+  <div class="public-shell public-shell-v8">
+    <header class="public-header public-header-v8">
+      <div class="public-brand public-brand-v8">
+        <img class="public-logo" src="./assets/logo-main.jpeg?v=8.0.1" alt="Home Library Nilai Impian">
+        <div>
+          <h1>Home Library Nilai Impian</h1>
+          <p>Koleksi Peribadi Zamri &amp; Nor Azzah</p>
+        </div>
+      </div>
+      <a class="public-login public-login-v8" href="./index.html" aria-label="Log Masuk Keluarga">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8c0-3.1 3.1-5.5 7-5.5s7 2.4 7 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>Log Masuk Keluarga</span>
+      </a>
     </header>
 
-    <section class="public-hero">
-      <div><p class="eyebrow light">KATALOG AWAM</p><h1>Jelajah koleksi<br>Home Library Nilai Impian</h1><p>Visitor boleh mencari dan browse koleksi buku serta membaca rating dan review yang dikongsi oleh family. Lokasi rak, harga pembelian, nota dalaman dan audit trail tidak dipaparkan di laman awam.</p></div>
-      <img class="public-hero-logo" src="./assets/logo-main.jpeg" alt="">
+    <section class="public-hero public-hero-v8" aria-labelledby="public-hero-title">
+      <div class="public-hero-copy-v8">
+        <p class="public-hero-eyebrow">KATALOG AWAM</p>
+        <h1 id="public-hero-title">Jelajah Koleksi</h1>
+        <h2>Home Library Nilai Impian</h2>
+        <p class="public-hero-body">Cari dan terokai koleksi peribadi Zamri &amp; Nor Azzah di Home Library Nilai Impian serta baca rating dan ulasan buku yang dikongsi oleh keluarga kami.</p>
+        <div class="public-hero-actions">
+          <button id="public-cta-browse" class="public-cta public-cta-primary" type="button">Jelajah Koleksi <span aria-hidden="true">→</span></button>
+          <button id="public-cta-search" class="public-cta public-cta-secondary" type="button">Cari Buku</button>
+        </div>
+      </div>
+      <div class="public-hero-atmosphere" aria-hidden="true"></div>
     </section>
 
-    <div class="public-stats">
-      <article class="stat-card"><span class="stat-label">Judul</span><strong id="public-stat-titles">—</strong></article>
-      <article class="stat-card"><span class="stat-label">Tersedia</span><strong id="public-stat-available">—</strong></article>
-      <article class="stat-card"><span class="stat-label">Kategori</span><strong id="public-stat-categories">—</strong></article>
-      <article class="stat-card"><span class="stat-label">Telah Dihabiskan</span><strong id="public-stat-reads">—</strong></article>
-    </div>
+    <section class="public-stats public-stats-v8" aria-label="Ringkasan koleksi">
+      <article class="stat-card public-stat-card"><span class="stat-label">Judul</span><strong id="public-stat-titles">—</strong></article>
+      <article class="stat-card public-stat-card"><span class="stat-label">Kategori</span><strong id="public-stat-categories">—</strong></article>
+      <article class="stat-card public-stat-card"><span class="stat-label">Selesai Dibaca</span><strong id="public-stat-reads">—</strong></article>
+      <article class="stat-card public-stat-card"><span class="stat-label">Karya Keluarga</span><strong id="public-stat-family-works">—</strong></article>
+    </section>
 
-    <nav class="public-section-nav" aria-label="Menu awam">
+    <nav id="public-section-nav" class="public-section-nav public-section-nav-v8" aria-label="Menu awam">
       <button class="public-section-btn active" data-public-view="catalogue" type="button">Katalog</button>
-      <button class="public-section-btn" data-public-view="reading" type="button">Review Keluarga</button>
+      <button class="public-section-btn" data-public-view="reviews" type="button">Ulasan Buku</button>
+      <button class="public-section-btn" data-public-view="familyworks" type="button">Karya Keluarga</button>
     </nav>
 
-    <section id="public-view-catalogue">
-      <div class="public-search-panel">
-        <input id="public-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis, ISBN, penerbit atau kategori…">
-        <select id="public-category"><option value="">Semua kategori</option></select>
+    <section id="public-view-catalogue" class="public-content-section">
+      <div class="public-search-panel public-search-panel-v8">
+        <input id="public-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis atau penerbit…">
+        <div class="public-filter-grid">
+          <select id="public-category" aria-label="Pilih kategori"><option value="">Semua kategori</option></select>
+          <select id="public-sort" aria-label="Susun mengikut">
+            <option value="TITLE_ASC">Tajuk A–Z</option>
+            <option value="TITLE_DESC">Tajuk Z–A</option>
+            <option value="NEWEST">Terbaru Ditambah</option>
+          </select>
+        </div>
       </div>
       <p class="public-note" id="public-meta">Memuatkan katalog…</p>
       <div id="public-grid" class="public-grid"></div>
       <div class="public-load-more"><button id="public-load-more" class="btn btn-secondary hidden" type="button">Muat Lagi</button></div>
     </section>
 
-    <section id="public-view-reading" class="hidden">
-      <div class="section-heading standalone public-reading-heading">
-        <div><p class="eyebrow">REVIEW KELUARGA</p><h2>Review buku oleh family</h2><p class="muted">Visitor boleh baca rating, ulasan dan status bacaan yang dikongsi oleh family.</p></div>
+    <section id="public-view-reviews" class="public-content-section hidden">
+      <div class="public-section-heading compact-public-heading">
+        <p class="eyebrow">ULASAN BUKU</p>
+        <h2>Ulasan Buku</h2>
       </div>
-      <div class="public-reading-toolbar">
-        <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari review, buku, penulis atau nama family…">
-        <div class="filter-row star-filter-row" aria-label="Tapis review ikut rating">
+      <div class="public-reading-toolbar public-review-toolbar-v8">
+        <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis atau pengulas…">
+        <div class="filter-row star-filter-row compact-star-filters" aria-label="Tapis ulasan ikut rating">
           <button class="pill active" data-public-review-rating="" type="button">Semua</button>
-          <button class="pill star-filter" data-public-review-rating="5" type="button">5 ★</button>
-          <button class="pill star-filter" data-public-review-rating="4" type="button">4 ★</button>
-          <button class="pill star-filter" data-public-review-rating="3" type="button">3 ★</button>
-          <button class="pill star-filter" data-public-review-rating="2" type="button">2 ★</button>
-          <button class="pill star-filter" data-public-review-rating="1" type="button">1 ★</button>
+          <button class="pill star-filter" data-public-review-rating="5" type="button">5★</button>
+          <button class="pill star-filter" data-public-review-rating="4" type="button">4★</button>
+          <button class="pill star-filter" data-public-review-rating="3" type="button">3★</button>
+          <button class="pill star-filter" data-public-review-rating="2" type="button">2★</button>
+          <button class="pill star-filter" data-public-review-rating="1" type="button">1★</button>
         </div>
       </div>
-      <p class="public-note" id="public-reading-meta">Memuatkan review keluarga…</p>
+      <p class="public-note" id="public-reading-meta">Memuatkan ulasan…</p>
       <div id="public-reading-list" class="public-reading-list"></div>
+    </section>
+
+    <section id="public-view-familyworks" class="public-content-section hidden">
+      <div class="public-section-heading compact-public-heading">
+        <p class="eyebrow">KARYA KELUARGA</p>
+        <h2>Karya Keluarga</h2>
+      </div>
+      <p class="public-note" id="public-familyworks-meta">Memuatkan karya keluarga…</p>
+      <div id="public-familyworks-grid" class="public-grid"></div>
     </section>
   </div>
 
@@ -69,6 +106,6 @@
     <div id="public-book-detail" class="public-detail"></div>
   </dialog>
 
-  <script type="module" src="./public.js?v=6.2.0"></script>
+  <script type="module" src="./public.js?v=8.0.0"></script>
 </body>
 </html>

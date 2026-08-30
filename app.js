@@ -161,7 +161,7 @@ function statusLabel(status = 'AVAILABLE') {
 }
 
 function readingStatusLabel(status = 'READING') {
-  return ({ READING: 'Sedang Baca', READ: 'Telah Dihabiskan' })[status] || status;
+  return ({ READING: 'Sedang Baca', READ: 'Selesai Dibaca' })[status] || status;
 }
 
 function ratingStars(rating) {
@@ -189,6 +189,10 @@ function classificationBadge(book) {
   return `<span class="classification-badge">Belum Disemak</span>`;
 }
 
+function familyWorkBadge(book) {
+  return book?.is_family_work ? '<span class="family-work-badge">Karya Keluarga</span>' : '';
+}
+
 function bookRow(book) {
   const copy = firstCopy(book);
   const shelf = copy?.shelf?.code || copy?.shelf?.name || '';
@@ -201,6 +205,7 @@ function bookRow(book) {
       <div class="book-sub">${esc(meta)}</div>
       ${cats.length ? `<div class="mini-categories">${cats.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
       ${classificationBadge(book)}
+      ${familyWorkBadge(book)}
       ${copy ? `<span class="status ${esc(copy.status)}">${esc(statusLabel(copy.status))}</span>` : ''}
     </div>
     <span class="chev">›</span>
@@ -258,7 +263,7 @@ async function runAuthRequest(operation, { retries = 1 } = {}) {
 
 function isRound2Missing(error) {
   const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
-  return error?.code === '42P01' || error?.code === 'PGRST200' || /book_categories|book_reviews|categories/.test(msg) && /does not exist|relationship|schema cache/.test(msg);
+  return error?.code === '42P01' || error?.code === 'PGRST200' || /book_categories|book_reviews|categories|is_family_work/.test(msg) && /does not exist|relationship|schema cache/.test(msg);
 }
 
 async function ensureFamilyAccess(user) {
@@ -395,7 +400,7 @@ async function navigate(name, updateHash = true) {
   $(`#view-${name}`).classList.remove('hidden');
   const navName = ['archive','activity'].includes(name) ? 'profile' : name;
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === navName));
-  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Review Keluarga', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
+  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Ulasan Buku', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
   $('#page-title').textContent = titles[name];
   if (updateHash) history.replaceState(null, '', `#${name}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -439,7 +444,7 @@ async function loadReadingDashboard() {
   if (!stat || !feed) return;
   const [countRes, recentRes] = await Promise.all([
     supabase.from('book_reviews').select('id', { count: 'exact', head: true }).eq('reading_status', 'READ'),
-    supabase.from('book_reviews').select(`id,reading_status,rating,review_text,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year)`).in('reading_status', ['READING','READ']).order('updated_at', { ascending: false }).limit(6)
+    supabase.from('book_reviews').select(`id,reading_status,rating,review_text,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year,book_authors(author:authors(name)))`).in('reading_status', ['READING','READ']).order('updated_at', { ascending: false }).limit(6)
   ]);
   if (countRes.error || recentRes.error) {
     if (isRound2Missing(countRes.error || recentRes.error)) {
@@ -472,13 +477,13 @@ async function loadReadingHub() {
   const all = [];
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase.from('book_reviews')
-      .select(`id,user_id,reading_status,rating,review_text,started_at,finished_at,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year)`)
+      .select(`id,user_id,reading_status,rating,review_text,started_at,finished_at,updated_at,reviewer:profiles(display_name),book:books(id,title,cover_url,publication_year,book_authors(author:authors(name)))`)
       .in('reading_status', ['READING','READ'])
       .order('updated_at', { ascending: false })
       .range(from, from + pageSize - 1);
     if (error) {
       console.error(error);
-      $('#reading-hub-list').innerHTML = '<div class="empty">Tak dapat load review keluarga sekarang.</div>';
+      $('#reading-hub-list').innerHTML = '<div class="empty">Tak dapat load ulasan keluarga sekarang.</div>';
       return;
     }
     all.push(...(data || []));
@@ -489,35 +494,39 @@ async function loadReadingHub() {
 }
 
 function renderReadingHub() {
-  const rows = state.readingRows || [];
-  const count = status => rows.filter(r => r.reading_status === status).length;
-  if ($('#reading-stat-reading')) $('#reading-stat-reading').textContent = count('READING');
-  if ($('#reading-stat-read')) $('#reading-stat-read').textContent = count('READ');
-
+  const rows = (state.readingRows || []).filter(r => r.rating || String(r.review_text || '').trim());
   const q = ($('#reading-search')?.value || '').trim().toLowerCase();
   const filtered = rows.filter(r => {
     const matchRating = state.reviewRating === 'ALL' || Number(r.rating) === Number(state.reviewRating);
-    const hay = [r.book?.title, r.reviewer?.display_name, r.review_text, readingStatusLabel(r.reading_status)].filter(Boolean).join(' ').toLowerCase();
+    const authors = (r.book?.book_authors || []).map(x => x?.author?.name).filter(Boolean).join(', ');
+    const hay = [r.book?.title, authors, r.reviewer?.display_name, r.review_text, readingStatusLabel(r.reading_status)].filter(Boolean).join(' ').toLowerCase();
     return matchRating && (!q || hay.includes(q));
   });
 
+  const meta = $('#reading-hub-meta');
+  if (meta) meta.textContent = `${filtered.length} ulasan`;
+
   const list = $('#reading-hub-list');
   if (!list) return;
-  list.innerHTML = filtered.length ? filtered.map(r => `<button class="reading-hub-card" data-book="${r.book?.id || ''}">
-    ${coverHTML(r.book?.cover_url)}
-    <div>
-      <div class="book-title">${esc(r.book?.title || 'Buku')}</div>
-      <div class="reading-meta">${esc(r.reviewer?.display_name || 'Family member')} · ${esc(readingStatusLabel(r.reading_status))}${r.rating ? ` · <span class="stars">${ratingStars(r.rating)}</span>` : ''}</div>
-      ${r.review_text ? `<div class="review-snippet">${esc(r.review_text)}</div>` : ''}
-    </div>
-    <span class="chev">›</span>
-  </button>`).join('') : '<div class="empty">Tiada review yang sepadan dengan carian atau rating dipilih.</div>';
+  list.innerHTML = filtered.length ? filtered.map(r => {
+    const authors = (r.book?.book_authors || []).map(x => x?.author?.name).filter(Boolean).join(', ') || 'Penulis tidak direkod';
+    return `<button class="reading-hub-card review-hub-card" data-book="${r.book?.id || ''}">
+      ${coverHTML(r.book?.cover_url)}
+      <div class="review-hub-main">
+        <div class="book-title">${esc(r.book?.title || 'Buku')}</div>
+        <div class="review-book-meta">${esc(authors)}${r.book?.publication_year ? ` · ${esc(r.book.publication_year)}` : ''}</div>
+        <div class="review-byline"><strong>${esc(r.reviewer?.display_name || 'Family member')}</strong>${r.rating ? `<span class="stars">${ratingStars(r.rating)}</span>` : ''}<span class="reading-badge ${esc(r.reading_status)}">${esc(readingStatusLabel(r.reading_status))}</span></div>
+        ${r.review_text ? `<div class="review-snippet review-snippet-clamp">${esc(r.review_text)}</div>` : '<div class="review-snippet muted">Tiada ulasan bertulis.</div>'}
+      </div>
+      <span class="chev">›</span>
+    </button>`;
+  }).join('') : '<div class="empty">Tiada ulasan yang sepadan dengan carian atau rating dipilih.</div>';
   $$('[data-book]', list).forEach(el => { if (el.dataset.book) el.onclick = () => openBook(el.dataset.book); });
 }
 
 const CATALOGUE_PAGE_SIZE = 500;
 const BASE_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,metadata,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),copies(id,accession_no,source,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
-const ROUND2_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,metadata,classification_mode,manual_category_id,classification_status,classification_remark,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),book_categories(category:categories(id,name,slug)),copies(id,accession_no,source,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
+const ROUND2_SELECT = `id,title,isbn_10,isbn_13,publication_year,language,description,cover_url,is_family_work,metadata,classification_mode,manual_category_id,classification_status,classification_remark,created_at,archived_at,publisher:publishers(id,name),book_authors(id,author_order,author:authors(id,name)),book_categories(category:categories(id,name,slug)),copies(id,accession_no,source,owner_label,acquisition_date,purchase_price,purchased_from,condition,status,notes,legacy_serial_no,legacy_call_no,created_at,archived_at,shelf:shelves(id,code,name,room,section,shelf_number),collection:collections(id,name))`;
 
 async function loadCatalogue() {
   const allBooks = [];
@@ -540,6 +549,7 @@ async function loadCatalogue() {
   }
   state.books = allBooks.map(b => ({
     ...b,
+    is_family_work: Boolean(b.is_family_work),
     book_categories: b.book_categories || [],
     copies: (b.copies || []).filter(c => !c.archived_at)
   }));
@@ -573,7 +583,7 @@ async function openBook(id) {
   state.selected = book;
   const copy = firstCopy(book);
   $('#book-detail').innerHTML = `<div class="detail-wrap">
-    <div class="detail-top">${coverHTML(book.cover_url, 'detail-cover')}<div><p class="eyebrow">BOOK RECORD</p><h3 class="detail-title">${esc(book.title)}</h3><p class="detail-author">${esc(authorNames(book))}</p>${categoryChips(book)}${copy ? `<span class="status ${esc(copy.status)}">${esc(statusLabel(copy.status))}</span>` : ''}</div></div>
+    <div class="detail-top">${coverHTML(book.cover_url, 'detail-cover')}<div><p class="eyebrow">BOOK RECORD</p><h3 class="detail-title">${esc(book.title)}</h3><p class="detail-author">${esc(authorNames(book))}</p>${categoryChips(book)}${familyWorkBadge(book)}${copy ? `<span class="status ${esc(copy.status)}">${esc(statusLabel(copy.status))}</span>` : ''}</div></div>
     ${book.description ? `<div class="book-description">${esc(book.description)}</div>` : ''}
     <div class="detail-grid">
       <div class="detail-item"><span>Penerbit</span><strong>${esc(book.publisher?.name || '—')}</strong></div><div class="detail-item"><span>Tahun</span><strong>${esc(book.publication_year || '—')}</strong></div>
@@ -586,7 +596,7 @@ async function openBook(id) {
     </div>
     ${copy?.notes ? `<div class="panel detail-note"><span class="tiny muted">NOTA</span><p>${esc(copy.notes)}</p></div>` : ''}
     ${copy ? `<div class="detail-actions"><button id="detail-edit" class="btn btn-secondary">Edit Rekod</button></div>` : ''}
-    <section class="review-section"><div class="review-title"><div><p class="eyebrow">FAMILY READING</p><h3>Review & Bacaan Family</h3></div></div><div id="family-reviews"><div class="empty compact">Memuatkan…</div></div></section>
+    <section class="review-section"><div class="review-title"><div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan & Bacaan Keluarga</h3></div></div><div id="family-reviews"><div class="empty compact">Memuatkan…</div></div></section>
   </div>`;
   $('#book-dialog').showModal();
   $('#detail-edit')?.addEventListener('click', () => openEdit(book, copy));
@@ -618,14 +628,14 @@ async function loadBookReviews(bookId) {
 
   container.innerHTML = `<div class="reviews-list">${otherHTML}</div>
     <form id="my-review-form" class="panel review-form">
-      <div><p class="eyebrow">REKOD SAYA</p><h3>Status & Review Saya</h3></div>
+      <div><p class="eyebrow">REKOD SAYA</p><h3>Status & Ulasan Saya</h3></div>
       <div class="review-form-grid">
-        <label><span>Status</span><select name="reading_status"><option value="READING">Sedang Baca</option><option value="READ">Telah Dihabiskan</option></select></label>
+        <label><span>Status</span><select name="reading_status"><option value="READING">Sedang Baca</option><option value="READ">Selesai Dibaca</option></select></label>
         <label><span>Rating</span><select name="rating"><option value="">Tiada rating</option><option value="5">★★★★★ 5</option><option value="4">★★★★☆ 4</option><option value="3">★★★☆☆ 3</option><option value="2">★★☆☆☆ 2</option><option value="1">★☆☆☆☆ 1</option></select></label>
         <label><span>Mula Baca</span><input name="started_at" type="date"></label><label><span>Selesai Baca</span><input name="finished_at" type="date"></label>
-        <label class="full"><span>Review</span><textarea name="review_text" rows="4" placeholder="Apa pendapat tentang buku ni?"></textarea></label>
+        <label class="full"><span>Ulasan</span><textarea name="review_text" rows="4" placeholder="Apa pendapat tentang buku ni?"></textarea></label>
       </div>
-      <div class="action-row"><button class="btn btn-primary" type="submit">Simpan Bacaan</button>${mine ? '<button id="delete-my-review" class="btn btn-danger" type="button">Padam Rekod Saya</button>' : ''}</div>
+      <div class="action-row"><button class="btn btn-primary" type="submit">Simpan Rekod</button>${mine ? '<button id="delete-my-review" class="btn btn-danger" type="button">Padam Rekod Saya</button>' : ''}</div>
     </form>`;
   const form = $('#my-review-form');
   form.elements.reading_status.value = ['READING','READ'].includes(mine?.reading_status) ? mine.reading_status : 'READING';
@@ -819,6 +829,7 @@ async function addBook(e) {
     const isbn13 = formValue(form, 'isbn13').replace(/[^0-9Xx]/g, '');
     const year = formValue(form, 'year');
     const publisherName = formValue(form, 'publisher');
+    const isFamilyWork = Boolean(form.elements.family_work?.checked);
     const shelfCode = formValue(form, 'shelf');
     const selectedCover = await resolveCoverUrl(form, isbn13 || slugify(title));
     const accession = normalizeAccession(formValue(form, 'accession'), true);
@@ -827,7 +838,7 @@ async function addBook(e) {
     let isNewBook = false;
 
     if (isbn13) {
-      const { data, error } = await supabase.from('books').select('id,cover_url,metadata').eq('isbn_13', isbn13).is('archived_at', null).limit(1);
+      const { data, error } = await supabase.from('books').select('id,cover_url,metadata,is_family_work').eq('isbn_13', isbn13).is('archived_at', null).limit(1);
       if (error) throw error;
       book = data?.[0] || null;
     }
@@ -844,6 +855,7 @@ async function addBook(e) {
         description: formValue(form, 'description') || null,
         publisher_id,
         cover_url: selectedCover,
+        is_family_work: isFamilyWork,
         source: 'WEBSITE',
         metadata,
         created_by: state.user.id,
@@ -855,6 +867,7 @@ async function addBook(e) {
     } else {
       toast('ISBN sudah wujud — naskhah baru ditambah pada judul sedia ada.');
       const existingUpdates = { updated_by: state.user.id };
+      if (isFamilyWork && !book.is_family_work) existingUpdates.is_family_work = true;
       if (form.elements.cover_file?.files?.[0] && selectedCover) existingUpdates.cover_url = selectedCover;
       if (formValue(form, 'category_note')) {
         existingUpdates.metadata = { ...(book.metadata || {}), other_category_note: formValue(form, 'category_note') };
@@ -916,6 +929,7 @@ function openEdit(book, copy) {
   f.elements.year.value = book.publication_year || '';
   f.elements.isbn13.value = book.isbn_13 || '';
   f.elements.publisher.value = book.publisher?.name || '';
+  if (f.elements.family_work) f.elements.family_work.checked = Boolean(book.is_family_work);
   f.elements.category_mode.value = book.classification_mode === 'MANUAL' && book.manual_category_id ? book.manual_category_id : 'AUTO';
   f.elements.category_note.value = book.metadata?.other_category_note || '';
   f.elements.accession.value = copy.source === 'ACCESS_2015' ? (copy.legacy_serial_no || copy.accession_no || '') : (/^\d{6}$/.test(String(copy.accession_no || '')) ? copy.accession_no : '');
@@ -956,6 +970,7 @@ async function saveEdit(e) {
       publication_year: formValue(f, 'year') ? Number(formValue(f, 'year')) : null,
       isbn_13: formValue(f, 'isbn13').replace(/[^0-9Xx]/g, '') || null,
       publisher_id,
+      is_family_work: Boolean(f.elements.family_work?.checked),
       cover_url: coverUrl,
       description: formValue(f, 'description') || null,
       metadata: mergedMetadata,
@@ -1053,7 +1068,7 @@ async function loadActivity() {
     const { data: p } = await supabase.from('profiles').select('id,display_name').in('id', ids);
     profiles = Object.fromEntries((p || []).map(x => [x.id, x.display_name]));
   }
-  const mapTable = { books: 'buku', copies: 'naskhah', authors: 'penulis', publishers: 'penerbit', shelves: 'rak', collections: 'koleksi', book_authors: 'hubungan penulis', categories: 'kategori', book_categories: 'kategori buku', book_reviews: 'review/bacaan' };
+  const mapTable = { books: 'buku', copies: 'naskhah', authors: 'penulis', publishers: 'penerbit', shelves: 'rak', collections: 'koleksi', book_authors: 'hubungan penulis', categories: 'kategori', book_categories: 'kategori buku', book_reviews: 'ulasan/bacaan' };
   const mapAction = { INSERT: 'menambah', UPDATE: 'mengemaskini', DELETE: 'memadam' };
   $('#activity-list').innerHTML = (data || []).length ? data.map(x => {
     const who = profiles[x.changed_by] || 'Family member';

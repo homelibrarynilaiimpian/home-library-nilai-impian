@@ -9,16 +9,17 @@
   <title>Home Library Nilai Impian</title>
   <meta name="description" content="Koleksi Peribadi Zamri & Nor Azzah">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./assets/icon-180.png">
-  <link rel="icon" href="./assets/icon-192.png">
+  <link rel="apple-touch-icon" href="./assets/icon-180.png?v=8.0.1">
+  <link rel="icon" href="./assets/icon-192.png?v=8.0.1">
   <link rel="stylesheet" href="./styles.css?v=6.2.0">
+  <link rel="stylesheet" href="./final-v8.css?v=8.0.0">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <section id="auth-screen" class="auth-screen">
     <div class="auth-card">
-      <div class="brand-mark"><img src="./assets/logo-main.jpeg" alt="Home Library Nilai Impian"></div>
+      <div class="brand-mark"><img src="./assets/logo-main.jpeg?v=8.0.1" alt="Home Library Nilai Impian"></div>
       <p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p>
       <h1>Koleksi Peribadi<br>Zamri &amp; Nor Azzah</h1>
       <p class="muted auth-copy">Katalog keluarga untuk menyimpan, mencari, membaca dan mengurus koleksi buku di rumah.</p>
@@ -47,7 +48,7 @@
 
   <div id="app-shell" class="app-shell hidden">
     <header class="topbar">
-      <div class="topbar-brand"><img class="topbar-logo" src="./assets/logo-main.jpeg" alt="Home Library Nilai Impian"><div><p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p><h2 id="page-title">Library</h2></div></div>
+      <div class="topbar-brand"><img class="topbar-logo" src="./assets/logo-main.jpeg?v=8.0.1" alt="Home Library Nilai Impian"><div><p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p><h2 id="page-title">Library</h2></div></div>
       <button id="profile-chip" class="profile-chip" type="button" data-nav="profile"><span id="profile-initial">H</span></button>
     </header>
 
@@ -55,13 +56,13 @@
       <section id="view-home" class="view">
         <div class="hero-card">
           <div><p class="eyebrow light">KOLEKSI KELUARGA</p><h1>Home Library<br>Nilai Impian</h1><p>Koleksi Peribadi Zamri &amp; Nor Azzah</p></div>
-          <div class="hero-logo-wrap" aria-hidden="true"><img class="hero-logo" src="./assets/logo-main.jpeg" alt=""></div>
+          <div class="hero-logo-wrap" aria-hidden="true"><img class="hero-logo" src="./assets/logo-main.jpeg?v=8.0.1" alt=""></div>
         </div>
         <div class="stats-grid stats-grid-four">
           <article class="stat-card"><span class="stat-label">Judul</span><strong id="stat-titles">—</strong></article>
           <article class="stat-card"><span class="stat-label">Naskhah</span><strong id="stat-copies">—</strong></article>
           <article class="stat-card"><span class="stat-label">Tersedia</span><strong id="stat-available">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Telah Dihabiskan</span><strong id="stat-read">—</strong></article>
+          <article class="stat-card"><span class="stat-label">Selesai Dibaca</span><strong id="stat-read">—</strong></article>
         </div>
 
         <div class="section-heading"><div><p class="eyebrow">BACAAN KELUARGA</p><h3>Aktiviti Bacaan Terkini</h3></div><button class="text-btn" data-nav="reading">Lihat semua</button></div>
@@ -85,24 +86,21 @@
 
 
       <section id="view-reading" class="view hidden">
-        <div class="section-heading standalone">
-          <div><p class="eyebrow">REVIEW KELUARGA</p><h3>Review Buku Family</h3><p class="muted">Cari review keluarga dan tapis terus mengikut rating bintang.</p></div>
+        <div class="section-heading standalone compact-section-heading">
+          <div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan Buku</h3></div>
         </div>
-        <div class="stats-grid stats-grid-two reading-stats">
-          <article class="stat-card"><span class="stat-label">Sedang Baca</span><strong id="reading-stat-reading">0</strong></article>
-          <article class="stat-card"><span class="stat-label">Telah Dihabiskan</span><strong id="reading-stat-read">0</strong></article>
-        </div>
-        <div class="reading-toolbar panel">
-          <input id="reading-search" type="search" placeholder="Cari buku atau nama family…" autocomplete="off">
-          <div class="filter-row star-filter-row" aria-label="Tapis ikut rating">
+        <div class="reading-toolbar panel compact-review-toolbar">
+          <input id="reading-search" type="search" placeholder="Cari tajuk, penulis atau pengulas…" autocomplete="off">
+          <div class="filter-row star-filter-row compact-star-filters" aria-label="Tapis ikut rating">
             <button class="pill active" data-review-rating="ALL" type="button">Semua</button>
-            <button class="pill star-filter" data-review-rating="5" type="button">5 ★</button>
-            <button class="pill star-filter" data-review-rating="4" type="button">4 ★</button>
-            <button class="pill star-filter" data-review-rating="3" type="button">3 ★</button>
-            <button class="pill star-filter" data-review-rating="2" type="button">2 ★</button>
-            <button class="pill star-filter" data-review-rating="1" type="button">1 ★</button>
+            <button class="pill star-filter" data-review-rating="5" type="button">5★</button>
+            <button class="pill star-filter" data-review-rating="4" type="button">4★</button>
+            <button class="pill star-filter" data-review-rating="3" type="button">3★</button>
+            <button class="pill star-filter" data-review-rating="2" type="button">2★</button>
+            <button class="pill star-filter" data-review-rating="1" type="button">1★</button>
           </div>
         </div>
+        <div id="reading-hub-meta" class="catalogue-meta muted"></div>
         <div id="reading-hub-list" class="reading-hub-list"></div>
       </section>
 
@@ -128,6 +126,7 @@
           <label><span>Tahun Terbit</span><input name="year" type="number" min="1000" max="2100" placeholder="2026"></label>
           <label class="full"><span>Penerbit</span><input name="publisher" placeholder="Nama penerbit"></label>
           <label><span>Bahasa</span><input name="language" placeholder="Malay / English"></label>
+          <label class="full family-work-toggle"><input name="family_work" type="checkbox"><span><strong>Karya Keluarga</strong><small class="muted">Tandakan jika buku ini hasil tulisan ahli keluarga. Tag ini tidak mengubah kategori LCC buku.</small></span></label>
           <label class="full category-control"><span>Kategori</span><select name="category_mode"><option value="AUTO">Auto ikut Call No. (Disyorkan)</option></select><small id="add-category-preview" class="muted">Isi Call No. secara manual untuk detect kategori. Jika tiada / tak pasti, dropdown tetap tunjuk Lain-lain tetapi rekod ditanda Belum Disemak secara dalaman.</small></label>
           <label id="add-other-category-wrap" class="full hidden"><span>Subjek / Keterangan Lain-lain</span><input name="category_note" placeholder="Contoh: Adventure stories, Malay fiction"><small class="muted">Ini disimpan sebagai remark/keterangan sahaja, bukan kategori baru.</small></label>
           <label><span>No. Siri / Accession</span><input name="accession" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="000044"><small class="muted">Format 6 digit. Contoh: 44 akan jadi 000044.</small></label>
@@ -181,7 +180,7 @@
       <button class="nav-btn active" data-nav="home"><span class="nav-icon">⌂</span><span>Home</span></button>
       <button class="nav-btn" data-nav="catalogue"><span class="nav-icon">▤</span><span>Katalog</span></button>
       <button class="nav-btn add-nav" data-nav="add"><span class="nav-plus">＋</span><span>Tambah</span></button>
-      <button class="nav-btn" data-nav="reading"><span class="nav-icon">★</span><span>Review</span></button>
+      <button class="nav-btn" data-nav="reading"><span class="nav-icon">★</span><span>Ulasan</span></button>
       <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profile</span></button>
     </nav>
   </div>
@@ -196,6 +195,7 @@
       <label class="full"><span>Penulis</span><input name="authors" required placeholder="Contoh: Penulis A; Penulis B"><small class="muted">Jika lebih seorang penulis, pisahkan nama dengan tanda semicolon <strong>;</strong></small></label>
       <label><span>Tahun Terbit</span><input name="year" type="number" min="1000" max="2100"></label><label><span>ISBN 13</span><input name="isbn13"></label>
       <label class="full"><span>Penerbit</span><input name="publisher"></label>
+      <label class="full family-work-toggle"><input name="family_work" type="checkbox"><span><strong>Karya Keluarga</strong><small class="muted">Tag khas untuk paparan awam. Buku tetap kekal dalam kategori LCC biasa.</small></span></label>
       <label class="full category-control"><span>Kategori</span><select name="category_mode"><option value="AUTO">Auto ikut Call No. (Disyorkan)</option></select><small id="edit-category-preview" class="muted"></small><small id="edit-classification-status" class="classification-info"></small></label>
       <label id="edit-other-category-wrap" class="full hidden"><span>Subjek / Keterangan Lain-lain</span><input name="category_note" placeholder="Keterangan ringkas jika perlu"><small class="muted">Tidak mencipta kategori baru.</small></label>
       <label><span>No. Siri / Accession</span><input name="accession" inputmode="numeric" placeholder="000044"><small class="muted">Rekod baru guna 6 digit. Rekod Access lama dikekalkan seperti asal.</small></label>
@@ -220,6 +220,6 @@
   </dialog>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script type="module" src="./app.js?v=6.2.0"></script>
+  <script type="module" src="./app.js?v=8.0.0"></script>
 </body>
 </html>
