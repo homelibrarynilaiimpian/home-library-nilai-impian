@@ -50,3 +50,77 @@
 .public-review-card p{margin:8px 0;line-height:1.55}
 .public-review-card small{opacity:.65}
 .public-review-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+
+/* V6: public menu + reading hub + cover URL option */
+.public-section-nav{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:18px 0;
+  padding:6px;
+  border:1px solid var(--line,#ddd5c4);
+  border-radius:18px;
+  background:rgba(255,255,255,.72);
+  position:sticky;
+  top:8px;
+  z-index:20;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.public-section-btn{
+  appearance:none;
+  border:0;
+  border-radius:13px;
+  padding:12px 14px;
+  font:inherit;
+  font-weight:800;
+  background:transparent;
+  color:var(--muted,#6b6a62);
+}
+.public-section-btn.active{
+  background:var(--green,#1f3b32);
+  color:#fff;
+}
+.public-reading-heading{margin-top:8px}
+.public-reading-toolbar{
+  display:grid;
+  gap:12px;
+  margin:12px 0 8px;
+}
+.public-reading-toolbar input{
+  width:100%;
+}
+.public-reading-list{
+  display:grid;
+  gap:14px;
+  margin:14px 0 34px;
+}
+.public-reading-card{
+  display:grid;
+  grid-template-columns:72px 1fr;
+  gap:14px;
+  padding:16px;
+  border:1px solid var(--line,#ddd5c4);
+  border-radius:20px;
+  background:var(--card,#fffdf8);
+  box-shadow:0 8px 24px rgba(30,34,28,.05);
+}
+.public-reading-card .reading-cover{
+  width:72px;
+  height:104px;
+  border-radius:10px;
+  object-fit:cover;
+}
+.public-reading-main{min-width:0}
+.public-reading-book h3{margin:0 0 4px;font-size:1.05rem}
+.public-reading-book p{margin:0 0 10px;color:var(--muted,#6b6a62);font-size:.9rem}
+.public-reading-review{margin:8px 0;line-height:1.55}
+.cover-picker-fields{display:grid;gap:10px;min-width:0}
+.cover-url-field{display:grid;gap:6px;margin-top:4px}
+.cover-url-field span{font-size:.78rem;font-weight:800;color:var(--muted,#6b6a62);text-transform:uppercase;letter-spacing:.05em}
+
+@media (max-width:640px){
+  .public-section-nav{top:max(8px,env(safe-area-inset-top))}
+  .public-reading-card{grid-template-columns:62px 1fr;padding:14px}
+  .public-reading-card .reading-cover{width:62px;height:92px}
+}

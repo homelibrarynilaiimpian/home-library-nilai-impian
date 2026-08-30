@@ -137,6 +137,18 @@ function firstCopy(book) {
   return (book?.copies || []).find(c => !c.archived_at) || book?.copies?.[0] || null;
 }
 
+function displayAccession(copy) {
+  if (!copy) return '—';
+  if (copy.source === 'ACCESS_2015') {
+    const legacy = String(copy.legacy_serial_no || '').trim();
+    if (/^\d+$/.test(legacy)) return legacy;
+    const current = String(copy.accession_no || '').trim();
+    return /^\d+$/.test(current) ? current : '—';
+  }
+  const current = String(copy.accession_no || '').trim();
+  return /^\d{6}$/.test(current) ? current : '—';
+}
+
 function coverHTML(url, className = 'book-cover') {
   if (url) {
     return `<img class="${className}" src="${esc(url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;${className} cover-placeholder&quot;>HLNI</div>'">`;
@@ -566,9 +578,9 @@ async function openBook(id) {
     <div class="detail-grid">
       <div class="detail-item"><span>Penerbit</span><strong>${esc(book.publisher?.name || '—')}</strong></div><div class="detail-item"><span>Tahun</span><strong>${esc(book.publication_year || '—')}</strong></div>
       <div class="detail-item"><span>ISBN 13</span><strong>${esc(book.isbn_13 || '—')}</strong></div><div class="detail-item"><span>Bahasa</span><strong>${esc(book.language || '—')}</strong></div>
-      <div class="detail-item"><span>No. Siri</span><strong>${esc(copy?.accession_no || copy?.legacy_serial_no || '—')}</strong></div><div class="detail-item"><span>Call No.</span><strong>${esc(copy?.legacy_call_no || '—')}</strong></div>
+      <div class="detail-item"><span>No. Siri</span><strong>${esc(displayAccession(copy))}</strong></div><div class="detail-item"><span>Call No.</span><strong>${esc(copy?.legacy_call_no || '—')}</strong></div>
       <div class="detail-item"><span>Status Pengelasan</span><strong>${esc(classificationStatusLabel(book.classification_status))}</strong></div><div class="detail-item"><span>Remark Pengelasan</span><strong>${esc(book.classification_remark || '—')}</strong></div>
-      <div class="detail-item"><span>Rak</span><strong>${esc(copy?.shelf?.code || copy?.shelf?.name || '—')}</strong></div><div class="detail-item"><span>Condition</span><strong>${esc(copy?.condition || '—')}</strong></div>
+      <div class="detail-item"><span>Rak</span><strong>${esc(copy?.shelf?.code || copy?.shelf?.name || '—')}</strong></div>
       <div class="detail-item"><span>Tarikh Beli</span><strong>${esc(copy?.acquisition_date ? prettyDate(copy.acquisition_date) : '—')}</strong></div><div class="detail-item"><span>Harga</span><strong>${esc(money(copy?.purchase_price))}</strong></div>
       <div class="detail-item"><span>Dibeli Dari</span><strong>${esc(copy?.purchased_from || '—')}</strong></div>
     </div>
@@ -862,7 +874,6 @@ async function addBook(e) {
       acquisition_date: formValue(form, 'acquisition_date') || null,
       purchase_price: formValue(form, 'purchase_price') ? Number(formValue(form, 'purchase_price')) : null,
       purchased_from: formValue(form, 'purchased_from') || null,
-      condition: formValue(form, 'condition') || null,
       notes: formValue(form, 'notes') || null,
       legacy_call_no: formValue(form, 'callno') || null,
       status: 'AVAILABLE',
@@ -878,7 +889,7 @@ async function addBook(e) {
     form.elements.category_mode.value = 'AUTO';
     form.elements.cover_url.value = '';
     $('#quick-isbn').value = '';
-    $('#metadata-status').textContent = 'Metadata akan dicari melalui Google Books dan Open Library. Call No. tidak diisi automatik.';
+    $('#metadata-status').textContent = 'Metadata akan digabungkan daripada beberapa sumber. Call No. tidak diisi automatik.';
     $('#isbnsearch-fallback')?.classList.add('hidden');
     renderCoverPreview('#add-cover-preview', '');
     updateCategoryPreview(form, '#add-category-preview');
@@ -907,10 +918,9 @@ function openEdit(book, copy) {
   f.elements.publisher.value = book.publisher?.name || '';
   f.elements.category_mode.value = book.classification_mode === 'MANUAL' && book.manual_category_id ? book.manual_category_id : 'AUTO';
   f.elements.category_note.value = book.metadata?.other_category_note || '';
-  f.elements.accession.value = copy.accession_no || '';
+  f.elements.accession.value = copy.source === 'ACCESS_2015' ? (copy.legacy_serial_no || copy.accession_no || '') : (/^\d{6}$/.test(String(copy.accession_no || '')) ? copy.accession_no : '');
   f.elements.status.value = copy.status === 'ARCHIVED' ? 'AVAILABLE' : copy.status;
   f.elements.shelf.value = copy.shelf?.code || copy.shelf?.name || '';
-  f.elements.condition.value = copy.condition || '';
   f.elements.acquisition_date.value = copy.acquisition_date || '';
   f.elements.purchase_price.value = copy.purchase_price === null || copy.purchase_price === undefined ? '' : Number(copy.purchase_price).toFixed(2);
   f.elements.purchased_from.value = copy.purchased_from || '';
@@ -959,7 +969,6 @@ async function saveEdit(e) {
       accession_no: accession || null,
       status: formValue(f, 'status') || 'AVAILABLE',
       shelf_id,
-      condition: formValue(f, 'condition') || null,
       acquisition_date: formValue(f, 'acquisition_date') || null,
       purchase_price: formValue(f, 'purchase_price') ? Number(formValue(f, 'purchase_price')) : null,
       purchased_from: formValue(f, 'purchased_from') || null,
@@ -1061,9 +1070,185 @@ async function saveProfile() {
   toast('Nama profile dikemaskini.');
 }
 
-function normalizeISBN(value = '') { return value.replace(/[^0-9Xx]/g, ''); }
+function normalizeISBN(value = '') { return value.replace(/[^0-9Xx]/g, '').toUpperCase(); }
 function extractYear(value = '') { const m = String(value).match(/\b(18|19|20)\d{2}\b/); return m ? Number(m[0]) : null; }
 function setFormIf(form, name, value, force = true) { if (value === undefined || value === null || value === '') return; const el = form.elements[name]; if (el && (force || !el.value)) el.value = value; }
+
+function isbn13To10(isbn13 = '') {
+  const x = normalizeISBN(isbn13);
+  if (!/^978\d{10}$/.test(x)) return '';
+  const body = x.slice(3, 12);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(body[i]) * (10 - i);
+  const check = (11 - (sum % 11)) % 11;
+  return body + (check === 10 ? 'X' : String(check));
+}
+
+function isbn10To13(isbn10 = '') {
+  const x = normalizeISBN(isbn10);
+  if (!/^\d{9}[\dX]$/.test(x)) return '';
+  const body = `978${x.slice(0, 9)}`;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += Number(body[i]) * (i % 2 ? 3 : 1);
+  const check = (10 - (sum % 10)) % 10;
+  return body + String(check);
+}
+
+function isbnVariants(isbn) {
+  const x = normalizeISBN(isbn);
+  return [...new Set([x, x.length === 13 ? isbn13To10(x) : isbn10To13(x)].filter(Boolean))];
+}
+
+function normalizeMeta(meta = {}) {
+  return {
+    isbn: meta.isbn || '',
+    title: meta.title || '',
+    authors: Array.isArray(meta.authors) ? meta.authors.filter(Boolean) : [],
+    publisher: meta.publisher || '',
+    year: meta.year || null,
+    language: meta.language || '',
+    description: meta.description || '',
+    cover_url: meta.cover_url || '',
+    categories: Array.isArray(meta.categories) ? meta.categories.filter(Boolean) : [],
+    sources: Array.isArray(meta.sources) ? meta.sources.filter(Boolean) : (meta.lookup_source ? [meta.lookup_source] : [])
+  };
+}
+
+function mergeMeta(base = {}, incoming = {}) {
+  const a = normalizeMeta(base), b = normalizeMeta(incoming);
+  return {
+    isbn: a.isbn || b.isbn,
+    title: a.title || b.title,
+    authors: a.authors.length ? a.authors : b.authors,
+    publisher: a.publisher || b.publisher,
+    year: a.year || b.year,
+    language: a.language || b.language,
+    description: a.description || b.description,
+    cover_url: a.cover_url || b.cover_url,
+    categories: [...new Set([...a.categories, ...b.categories])].slice(0, 12),
+    sources: [...new Set([...a.sources, ...b.sources])]
+  };
+}
+
+function metadataCompleteness(meta = {}) {
+  return ['title', 'authors', 'publisher', 'year', 'language', 'description', 'cover_url'].reduce((n, k) => {
+    const v = meta[k];
+    return n + (Array.isArray(v) ? (v.length ? 1 : 0) : (v ? 1 : 0));
+  }, 0);
+}
+
+async function googleBooksMeta(isbn) {
+  let best = null;
+  for (const variant of isbnVariants(isbn)) {
+    for (const q of [`isbn:${variant}`, variant]) {
+      try {
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`);
+        if (!res.ok) continue;
+        const json = await res.json();
+        for (const item of json?.items || []) {
+          const v = item?.volumeInfo;
+          if (!v?.title) continue;
+          const identifiers = (v.industryIdentifiers || []).map(x => normalizeISBN(x.identifier || ''));
+          if (q.startsWith('isbn:') && identifiers.length && !identifiers.some(x => isbnVariants(isbn).includes(x))) continue;
+          const meta = normalizeMeta({
+            isbn,
+            title: v.title,
+            authors: v.authors || [],
+            publisher: v.publisher || '',
+            year: extractYear(v.publishedDate),
+            language: v.language || '',
+            description: v.description || '',
+            cover_url: (v.imageLinks?.extraLarge || v.imageLinks?.large || v.imageLinks?.medium || v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || '').replace(/^http:/, 'https:'),
+            categories: v.categories || [],
+            sources: ['Google Books']
+          });
+          if (!best || metadataCompleteness(meta) > metadataCompleteness(best)) best = meta;
+        }
+        if (best && metadataCompleteness(best) >= 5) return best;
+      } catch (e) { console.warn('Google Books lookup failed', e); }
+    }
+  }
+  return best;
+}
+
+async function openLibraryBookMeta(isbn) {
+  let merged = null;
+  for (const variant of isbnVariants(isbn)) {
+    try {
+      const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(variant)}&jscmd=data&format=json`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const v = json?.[`ISBN:${variant}`];
+      if (!v?.title) continue;
+      merged = mergeMeta(merged, {
+        isbn,
+        title: v.title,
+        authors: (v.authors || []).map(a => a.name).filter(Boolean),
+        publisher: v.publishers?.[0]?.name || '',
+        year: extractYear(v.publish_date),
+        cover_url: (v.cover?.large || v.cover?.medium || v.cover?.small || '').replace(/^http:/, 'https:'),
+        categories: (v.subjects || []).slice(0, 10).map(x => x.name).filter(Boolean),
+        sources: ['Open Library']
+      });
+    } catch (e) { console.warn('Open Library book lookup failed', e); }
+  }
+  return merged;
+}
+
+async function openLibrarySearchMeta(isbn) {
+  let best = null;
+  for (const variant of isbnVariants(isbn)) {
+    try {
+      const fields = 'title,author_name,publisher,first_publish_year,language,cover_i,subject,isbn';
+      const res = await fetch(`https://openlibrary.org/search.json?isbn=${encodeURIComponent(variant)}&limit=5&fields=${encodeURIComponent(fields)}`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      for (const v of json?.docs || []) {
+        if (!v?.title) continue;
+        const meta = normalizeMeta({
+          isbn,
+          title: v.title,
+          authors: v.author_name || [],
+          publisher: v.publisher?.[0] || '',
+          year: v.first_publish_year || null,
+          language: v.language?.[0] || '',
+          cover_url: v.cover_i ? `https://covers.openlibrary.org/b/id/${v.cover_i}-L.jpg` : '',
+          categories: (v.subject || []).slice(0, 10),
+          sources: ['Open Library Search']
+        });
+        if (!best || metadataCompleteness(meta) > metadataCompleteness(best)) best = meta;
+      }
+    } catch (e) { console.warn('Open Library search lookup failed', e); }
+  }
+  return best;
+}
+
+async function isbnSearchReaderMeta(isbn) {
+  try {
+    const target = `https://isbnsearch.org/isbn/${encodeURIComponent(isbn)}`;
+    const res = await fetch(`https://r.jina.ai/${target}`);
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!text || /Please Verify to Continue/i.test(text)) return null;
+    const headings = [...text.matchAll(/^#\s+(.+)$/gm)].map(m => m[1].trim()).filter(x => !/^ISBN Search$/i.test(x));
+    const title = headings[0] || '';
+    const authorsRaw = text.match(/^Authors?:\s*(.+)$/mi)?.[1]?.trim() || '';
+    const publisher = text.match(/^Publisher:\s*(.+)$/mi)?.[1]?.trim() || '';
+    const published = text.match(/^Published:\s*(.+)$/mi)?.[1]?.trim() || '';
+    if (!title && !authorsRaw && !publisher) return null;
+    return normalizeMeta({
+      isbn,
+      title,
+      authors: authorsRaw ? authorsRaw.split(/\s*;\s*/).filter(Boolean) : [],
+      publisher,
+      year: extractYear(published),
+      sources: ['ISBNsearch.org via Jina Reader']
+    });
+  } catch (e) {
+    console.warn('ISBNsearch Reader lookup failed', e);
+    return null;
+  }
+}
 
 function setISBNsearchFallback(isbn, visible) {
   const link = $('#isbnsearch-fallback');
@@ -1076,110 +1261,62 @@ async function lookupISBN(rawISBN) {
   const isbn = normalizeISBN(rawISBN || $('#quick-isbn').value || $('#add-isbn13').value);
   if (!(isbn.length === 10 || isbn.length === 13)) { toast('Masukkan ISBN 10 atau ISBN 13 yang sah.', true); return; }
   $('#quick-isbn').value = isbn;
-  $('#add-isbn13').value = isbn;
+  $('#add-isbn13').value = isbn.length === 10 ? (isbn10To13(isbn) || isbn) : isbn;
   const status = $('#metadata-status');
-  status.textContent = 'Mencari metadata buku…';
+  status.textContent = 'Mencari dan menggabungkan metadata daripada beberapa sumber…';
   $('#lookup-isbn-btn').disabled = true;
   setISBNsearchFallback(isbn, false);
   try {
-    let meta = null;
-    try {
-      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}&maxResults=1`);
-      if (res.ok) {
-        const json = await res.json();
-        const v = json?.items?.[0]?.volumeInfo;
-        if (v?.title) {
-          meta = {
-            isbn,
-            lookup_source: 'GOOGLE_BOOKS',
-            title: v.title,
-            authors: v.authors || [],
-            publisher: v.publisher || '',
-            year: extractYear(v.publishedDate),
-            language: v.language || '',
-            description: v.description || '',
-            cover_url: (v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || '').replace(/^http:/, 'https:'),
-            categories: v.categories || []
-          };
-        }
-      }
-    } catch (e) { console.warn('Google Books lookup failed', e); }
+    const results = await Promise.allSettled([
+      googleBooksMeta(isbn),
+      openLibraryBookMeta(isbn),
+      openLibrarySearchMeta(isbn)
+    ]);
 
-    if (!meta) {
-      try {
-        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&jscmd=data&format=json`);
-        if (res.ok) {
-          const json = await res.json();
-          const v = json?.[`ISBN:${isbn}`];
-          if (v?.title) {
-            meta = {
-              isbn,
-              lookup_source: 'OPEN_LIBRARY',
-              title: v.title,
-              authors: (v.authors || []).map(a => a.name).filter(Boolean),
-              publisher: v.publishers?.[0]?.name || '',
-              year: extractYear(v.publish_date),
-              language: '',
-              description: '',
-              cover_url: (v.cover?.large || v.cover?.medium || v.cover?.small || '').replace(/^http:/, 'https:'),
-              categories: (v.subjects || []).slice(0, 3).map(s => s.name).filter(Boolean)
-            };
-          }
-        }
-      } catch (e) { console.warn('Open Library lookup failed', e); }
+    let meta = normalizeMeta({ isbn });
+    for (const r of results) if (r.status === 'fulfilled' && r.value) meta = mergeMeta(meta, r.value);
+
+    // ISBNsearch.org is used only as an extra fallback/field-completer via Jina Reader.
+    if (metadataCompleteness(meta) < 5 || !meta.title) {
+      const extra = await isbnSearchReaderMeta(isbn);
+      if (extra) meta = mergeMeta(meta, extra);
     }
 
-    if (!meta) {
-      try {
-        const res = await fetch(`https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1&fields=title,author_name,publisher,first_publish_year,language,cover_i,subject`);
-        if (res.ok) {
-          const json = await res.json();
-          const v = json?.docs?.[0];
-          if (v?.title) {
-            meta = {
-              isbn,
-              lookup_source: 'OPEN_LIBRARY_SEARCH',
-              title: v.title,
-              authors: v.author_name || [],
-              publisher: v.publisher?.[0] || '',
-              year: v.first_publish_year || null,
-              language: v.language?.[0] || '',
-              description: '',
-              cover_url: v.cover_i ? `https://covers.openlibrary.org/b/id/${v.cover_i}-L.jpg` : '',
-              categories: (v.subject || []).slice(0, 5)
-            };
-          }
-        }
-      } catch (e) { console.warn('Open Library search lookup failed', e); }
-    }
-
-    if (!meta) {
+    setISBNsearchFallback(isbn, true);
+    if (!meta.title) {
       state.lastLookupMeta = null;
-      status.textContent = 'Tak jumpa pada Google Books / Open Library. ISBN sudah diisi. Boleh semak rekod yang sama di ISBNsearch.org, kemudian isi maklumat manual.';
-      setISBNsearchFallback(isbn, true);
-      toast('Metadata tak dijumpai pada sumber auto. Cuba ISBNsearch.org.', true);
+      status.textContent = 'Metadata auto masih tak jumpa. ISBN sudah diisi. Gunakan butang ISBNsearch.org untuk semak dan isi ruang yang perlu secara manual.';
+      toast('Metadata tak dijumpai pada sumber auto.', true);
       return;
     }
 
-    state.lastLookupMeta = meta;
+    state.lastLookupMeta = { ...meta, lookup_source: meta.sources.join(' + ') };
     const form = $('#add-book-form');
-    setFormIf(form, 'title', meta.title);
-    setFormIf(form, 'authors', meta.authors.join('; '));
-    setFormIf(form, 'publisher', meta.publisher);
-    setFormIf(form, 'year', meta.year);
-    setFormIf(form, 'language', meta.language);
-    setFormIf(form, 'description', meta.description);
-    setFormIf(form, 'cover_url', meta.cover_url);
-    setFormIf(form, 'isbn13', isbn);
-    renderCoverPreview('#add-cover-preview', meta.cover_url || '');
+    setFormIf(form, 'title', meta.title, false);
+    setFormIf(form, 'authors', meta.authors.join('; '), false);
+    setFormIf(form, 'publisher', meta.publisher, false);
+    setFormIf(form, 'year', meta.year, false);
+    setFormIf(form, 'language', meta.language, false);
+    setFormIf(form, 'description', meta.description, false);
+    setFormIf(form, 'cover_url', meta.cover_url, false);
+    setFormIf(form, 'isbn13', isbn.length === 10 ? (isbn10To13(isbn) || isbn) : isbn, true);
+    renderCoverPreview('#add-cover-preview', form.elements.cover_url.value || meta.cover_url || '');
     updateCategoryPreview(form, '#add-category-preview');
-    const subjects = (meta.categories || []).slice(0, 3);
-    const sourceLabel = meta.lookup_source === 'GOOGLE_BOOKS' ? 'Google Books' : 'Open Library';
-    status.innerHTML = `Jumpa: <strong>${esc(meta.title)}</strong> · ${esc(sourceLabel)}${subjects.length ? ` · subjek metadata: ${subjects.map(esc).join(', ')}` : ''}. <strong>Call No. tidak diisi automatik</strong>; isi manual jika ada.`;
-    toast('Metadata buku berjaya diisi.');
+
+    const missing = [];
+    if (!form.elements.authors.value) missing.push('penulis');
+    if (!form.elements.publisher.value) missing.push('penerbit');
+    if (!form.elements.year.value) missing.push('tahun');
+    if (!form.elements.language.value) missing.push('bahasa');
+    if (!form.elements.description.value) missing.push('sinopsis');
+    if (!form.elements.cover_url.value) missing.push('cover');
+    const sources = meta.sources.length ? meta.sources.join(', ') : 'sumber awam';
+    status.innerHTML = `Jumpa: <strong>${esc(meta.title)}</strong> · sumber: ${esc(sources)}.${missing.length ? ` Masih tiada: <strong>${esc(missing.join(', '))}</strong>.` : ' Metadata utama lengkap.'} <strong>Call No. kekal manual.</strong>`;
+    toast(missing.length ? 'Metadata dijumpai dan digabungkan. Semak ruang yang masih kosong.' : 'Metadata buku berjaya dilengkapkan.');
   } catch (err) {
     console.error(err);
-    status.textContent = 'Lookup gagal. Isi maklumat manual atau cuba lagi.';
+    setISBNsearchFallback(isbn, true);
+    status.textContent = 'Lookup gagal. ISBN sudah diisi; boleh buka ISBNsearch.org atau isi maklumat manual.';
     toast('Tak dapat tarik metadata sekarang.', true);
   } finally {
     $('#lookup-isbn-btn').disabled = false;
@@ -1309,6 +1446,13 @@ $('#add-book-form').elements.callno?.addEventListener('input', () => updateCateg
 $('#edit-book-form').elements.callno?.addEventListener('input', () => updateCategoryPreview($('#edit-book-form'), '#edit-category-preview'));
 $('#add-book-form').elements.category_mode?.addEventListener('change', () => updateCategoryPreview($('#add-book-form'), '#add-category-preview'));
 $('#edit-book-form').elements.category_mode?.addEventListener('change', () => updateCategoryPreview($('#edit-book-form'), '#edit-category-preview'));
+
+$('#add-book-form').elements.cover_url?.addEventListener('input', e => {
+  if (!$('#add-book-form').elements.cover_file?.files?.length) renderCoverPreview('#add-cover-preview', e.target.value.trim());
+});
+$('#edit-book-form').elements.cover_url?.addEventListener('input', e => {
+  if (!$('#edit-book-form').elements.cover_file?.files?.length) renderCoverPreview('#edit-cover-preview', e.target.value.trim());
+});
 
 $('#add-book-form').elements.cover_file?.addEventListener('change', e => {
   const file = e.target.files?.[0];

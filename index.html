@@ -114,8 +114,8 @@
             <button id="scan-isbn-btn" class="btn btn-primary" type="button">Scan Barcode</button>
           </div>
           <div id="isbn-reader" class="isbn-reader hidden"></div>
-          <div id="metadata-status" class="metadata-status muted tiny">Metadata akan dicari melalui Google Books dan Open Library. Call No. tidak diisi automatik.</div>
-          <a id="isbnsearch-fallback" class="btn btn-secondary btn-link hidden" target="_blank" rel="noopener">Semak ISBNsearch.org</a>
+          <div id="metadata-status" class="metadata-status muted tiny">Metadata akan digabungkan daripada beberapa sumber. Call No. tidak diisi automatik.</div>
+          <a id="isbnsearch-fallback" class="btn btn-secondary btn-link hidden" target="_blank" rel="noopener">Buka rekod di ISBNsearch.org</a>
         </div>
 
         <form id="add-book-form" class="panel form-stack two-col">
@@ -129,15 +129,18 @@
           <label id="add-other-category-wrap" class="full hidden"><span>Subjek / Keterangan Lain-lain</span><input name="category_note" placeholder="Contoh: Adventure stories, Malay fiction"><small class="muted">Ini disimpan sebagai remark/keterangan sahaja, bukan kategori baru.</small></label>
           <label><span>No. Siri / Accession</span><input name="accession" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="000044"><small class="muted">Format 6 digit. Contoh: 44 akan jadi 000044.</small></label>
           <label><span>Call No.</span><input name="callno" placeholder="Isi manual berdasarkan pengelasan perpustakaan"><small class="muted">Call No. baru tidak dijana automatik.</small></label>
-          <label><span>Rak</span><input name="shelf" placeholder="Contoh A-03"></label>
-          <label><span>Condition</span><select name="condition"><option value="">—</option><option>New</option><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option></select></label>
+          <label class="full"><span>Rak</span><input name="shelf" placeholder="Contoh A-03"></label>
           <label><span>Tarikh Beli</span><input name="acquisition_date" type="date"></label>
           <label><span>Harga Beli (RM)</span><input name="purchase_price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
           <label class="full"><span>Dibeli Dari</span><input name="purchased_from" placeholder="Kinokuniya / Popular / dll."></label>
           <div class="full cover-picker">
-            <input type="hidden" name="cover_url">
             <div id="add-cover-preview" class="cover-upload-preview"><div class="cover-placeholder">HLNI</div></div>
-            <div><strong>Cover Buku</strong><p class="tiny muted">Cover akan diambil automatik daripada ISBN jika ada. Kalau tiada, pilih gambar atau ambil gambar menggunakan telefon.</p><input name="cover_file" type="file" accept="image/*"></div>
+            <div class="cover-picker-fields">
+              <strong>Cover Buku</strong>
+              <p class="tiny muted">Auto daripada metadata jika ada. Boleh upload/ambil gambar, atau tampal URL gambar terus.</p>
+              <input name="cover_file" type="file" accept="image/*">
+              <label class="cover-url-field"><span>URL Cover (optional)</span><input name="cover_url" type="url" placeholder="https://…"></label>
+            </div>
           </div>
           <label class="full"><span>Sinopsis / Description</span><textarea name="description" rows="4" placeholder="Auto diisi jika metadata tersedia"></textarea></label>
           <label class="full"><span>Nota Naskhah</span><textarea name="notes" rows="3" placeholder="Apa-apa catatan tentang naskhah ini"></textarea></label>
@@ -194,14 +197,18 @@
       <label id="edit-other-category-wrap" class="full hidden"><span>Subjek / Keterangan Lain-lain</span><input name="category_note" placeholder="Keterangan ringkas jika perlu"><small class="muted">Tidak mencipta kategori baru.</small></label>
       <label><span>No. Siri / Accession</span><input name="accession" inputmode="numeric" placeholder="000044"><small class="muted">Rekod baru guna 6 digit. Rekod Access lama dikekalkan seperti asal.</small></label>
       <label><span>Status</span><select name="status"><option value="AVAILABLE">AVAILABLE</option><option value="BORROWED">BORROWED</option><option value="MISSING">MISSING</option><option value="REPAIR">REPAIR</option></select></label>
-      <label><span>Rak</span><input name="shelf"></label><label><span>Condition</span><input name="condition"></label>
+      <label class="full"><span>Rak</span><input name="shelf"></label>
       <label><span>Tarikh Beli</span><input name="acquisition_date" type="date"></label><label><span>Harga Beli (RM)</span><input name="purchase_price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
       <label class="full"><span>Dibeli Dari</span><input name="purchased_from"></label>
       <label class="full"><span>Call No.</span><input name="callno"><small class="muted">Call No. Access lama dikekalkan. Jika buku baru, isi secara manual.</small></label>
       <div class="full cover-picker">
-        <input type="hidden" name="cover_url">
         <div id="edit-cover-preview" class="cover-upload-preview"><div class="cover-placeholder">HLNI</div></div>
-        <div><strong>Cover Buku</strong><p class="tiny muted">Cover sedia ada dikekalkan. Pilih gambar baru hanya jika mahu menggantikannya.</p><input name="cover_file" type="file" accept="image/*"></div>
+        <div class="cover-picker-fields">
+          <strong>Cover Buku</strong>
+          <p class="tiny muted">Cover sedia ada dikekalkan. Boleh upload gambar baru atau tampal URL gambar.</p>
+          <input name="cover_file" type="file" accept="image/*">
+          <label class="cover-url-field"><span>URL Cover (optional)</span><input name="cover_url" type="url" placeholder="https://…"></label>
+        </div>
       </div>
       <label class="full"><span>Sinopsis / Description</span><textarea name="description" rows="4"></textarea></label>
       <label class="full"><span>Nota Naskhah</span><textarea name="notes" rows="3"></textarea></label>

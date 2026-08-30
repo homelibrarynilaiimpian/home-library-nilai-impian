@@ -29,13 +29,36 @@
       <article class="stat-card"><span class="stat-label">Bacaan Family</span><strong id="public-stat-reads">—</strong></article>
     </div>
 
-    <div class="public-search-panel">
-      <input id="public-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis, ISBN, penerbit atau kategori…">
-      <select id="public-category"><option value="">Semua kategori</option></select>
-    </div>
-    <p class="public-note" id="public-meta">Memuatkan katalog…</p>
-    <div id="public-grid" class="public-grid"></div>
-    <div class="public-load-more"><button id="public-load-more" class="btn btn-secondary hidden" type="button">Muat Lagi</button></div>
+    <nav class="public-section-nav" aria-label="Menu awam">
+      <button class="public-section-btn active" data-public-view="catalogue" type="button">Katalog</button>
+      <button class="public-section-btn" data-public-view="reading" type="button">Bacaan Keluarga</button>
+    </nav>
+
+    <section id="public-view-catalogue">
+      <div class="public-search-panel">
+        <input id="public-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis, ISBN, penerbit atau kategori…">
+        <select id="public-category"><option value="">Semua kategori</option></select>
+      </div>
+      <p class="public-note" id="public-meta">Memuatkan katalog…</p>
+      <div id="public-grid" class="public-grid"></div>
+      <div class="public-load-more"><button id="public-load-more" class="btn btn-secondary hidden" type="button">Muat Lagi</button></div>
+    </section>
+
+    <section id="public-view-reading" class="hidden">
+      <div class="section-heading standalone public-reading-heading">
+        <div><p class="eyebrow">BACAAN KELUARGA</p><h2>Apa yang family sedang & telah baca</h2><p class="muted">Visitor boleh baca rating dan review yang family pilih untuk dikongsi.</p></div>
+      </div>
+      <div class="public-reading-toolbar">
+        <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari buku, penulis atau nama family…">
+        <div class="filter-row">
+          <button class="pill active" data-public-reading-status="" type="button">Semua</button>
+          <button class="pill" data-public-reading-status="READING" type="button">Sedang Baca</button>
+          <button class="pill" data-public-reading-status="READ" type="button">Telah Dihabiskan</button>
+        </div>
+      </div>
+      <p class="public-note" id="public-reading-meta">Memuatkan bacaan keluarga…</p>
+      <div id="public-reading-list" class="public-reading-list"></div>
+    </section>
   </div>
 
   <dialog id="public-book-dialog" class="public-dialog">
