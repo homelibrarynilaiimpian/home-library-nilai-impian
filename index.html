@@ -18,7 +18,7 @@
 
   <section id="auth-screen" class="auth-screen">
     <div class="auth-card">
-      <div class="brand-mark"><img src="./assets/logo-main.png" alt="Home Library Nilai Impian"></div>
+      <div class="brand-mark"><img src="./assets/logo-main.jpeg" alt="Home Library Nilai Impian"></div>
       <p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p>
       <h1>Koleksi Peribadi<br>Zamri &amp; Nor Azzah</h1>
       <p class="muted auth-copy">Katalog keluarga untuk menyimpan, mencari dan mengurus koleksi buku di rumah.</p>
@@ -26,6 +26,19 @@
         <label><span>Email</span><input id="login-email" type="email" autocomplete="email" required placeholder="nama@email.com"></label>
         <label><span>Password</span><input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
         <button class="btn btn-primary" type="submit">Log Masuk</button>
+        <button id="forgot-password-btn" class="link-btn" type="button">Lupa password?</button>
+      </form>
+      <form id="forgot-form" class="form-stack hidden">
+        <div><p class="eyebrow">RESET PASSWORD</p><h3>Lupa Password</h3><p class="muted tiny">Masukkan email family yang telah didaftarkan. Link reset akan dihantar melalui email.</p></div>
+        <label><span>Email</span><input id="forgot-email" type="email" autocomplete="email" required placeholder="nama@email.com"></label>
+        <button class="btn btn-primary" type="submit">Hantar Link Reset</button>
+        <button id="back-login-btn" class="link-btn" type="button">Kembali ke login</button>
+      </form>
+      <form id="reset-password-form" class="form-stack hidden">
+        <div><p class="eyebrow">NEW PASSWORD</p><h3>Tetapkan Password Baru</h3></div>
+        <label><span>Password Baru</span><input id="new-password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimum 8 aksara"></label>
+        <label><span>Ulang Password</span><input id="confirm-password" type="password" minlength="8" autocomplete="new-password" required placeholder="Ulang password"></label>
+        <button class="btn btn-primary" type="submit">Simpan Password Baru</button>
       </form>
       <p class="tiny muted">Akses hanya untuk ahli keluarga yang telah diluluskan.</p>
     </div>
@@ -33,7 +46,7 @@
 
   <div id="app-shell" class="app-shell hidden">
     <header class="topbar">
-      <div class="topbar-brand"><img class="topbar-logo" src="./assets/logo-main.png" alt="Home Library Nilai Impian"><div><p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p><h2 id="page-title">Library</h2></div></div>
+      <div class="topbar-brand"><img class="topbar-logo" src="./assets/logo-main.jpeg" alt="Home Library Nilai Impian"><div><p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p><h2 id="page-title">Library</h2></div></div>
       <button id="profile-chip" class="profile-chip" type="button" data-nav="profile"><span id="profile-initial">H</span></button>
     </header>
 
@@ -41,7 +54,7 @@
       <section id="view-home" class="view">
         <div class="hero-card">
           <div><p class="eyebrow light">KOLEKSI KELUARGA</p><h1>Home Library<br>Nilai Impian</h1><p>Koleksi Peribadi Zamri &amp; Nor Azzah</p></div>
-          <div class="hero-logo-wrap" aria-hidden="true"><img class="hero-logo" src="./assets/logo-main.png" alt=""></div>
+          <div class="hero-logo-wrap" aria-hidden="true"><img class="hero-logo" src="./assets/logo-main.jpeg" alt=""></div>
         </div>
         <div class="stats-grid">
           <article class="stat-card"><span class="stat-label">Judul</span><strong id="stat-titles">—</strong></article>
@@ -89,8 +102,14 @@
         <div id="activity-list" class="activity-list"></div>
       </section>
 
+      <section id="view-archive" class="view hidden">
+        <div class="section-heading standalone"><div><p class="eyebrow">ARCHIVE &amp; TRASH</p><h3>Arkib</h3><p class="muted">Restore naskhah atau padam secara kekal. Permanent delete tidak boleh dibatalkan.</p></div></div>
+        <button class="btn btn-secondary archive-back" type="button" data-nav="profile">← Kembali ke Profile</button>
+        <div id="archive-list" class="archive-list"></div>
+      </section>
+
       <section id="view-profile" class="view hidden">
-        <div class="panel form-stack"><div><p class="eyebrow">ACCOUNT</p><h3>Profile</h3></div><label><span>Nama Paparan</span><input id="profile-name" placeholder="Nama"></label><label><span>Email</span><input id="profile-email" disabled></label><button id="save-profile" class="btn btn-primary" type="button">Simpan Nama</button><hr><button id="logout-btn" class="btn btn-danger" type="button">Log Keluar</button></div>
+        <div class="panel form-stack"><div><p class="eyebrow">ACCOUNT</p><h3>Profile</h3></div><label><span>Nama Paparan</span><input id="profile-name" placeholder="Nama"></label><label><span>Email</span><input id="profile-email" disabled></label><button id="save-profile" class="btn btn-primary" type="button">Simpan Nama</button><button class="btn btn-secondary" type="button" data-nav="archive">Archive &amp; Trash</button><hr><button id="logout-btn" class="btn btn-danger" type="button">Log Keluar</button></div>
       </section>
     </main>
 
