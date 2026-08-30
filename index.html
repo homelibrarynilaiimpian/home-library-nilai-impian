@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1f3b32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="HL Nilai Impian">
+  <title>Home Library Nilai Impian</title>
+  <meta name="description" content="Koleksi Peribadi Zamri & Nor Azzah">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/icon-180.png">
+  <link rel="icon" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="brand-mark">HL</div>
+      <p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p>
+      <h1>Koleksi Peribadi<br>Zamri &amp; Nor Azzah</h1>
+      <p class="muted auth-copy">Katalog keluarga untuk menyimpan, mencari dan mengurus koleksi buku di rumah.</p>
+      <form id="login-form" class="form-stack">
+        <label><span>Email</span><input id="login-email" type="email" autocomplete="email" required placeholder="nama@email.com"></label>
+        <label><span>Password</span><input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
+        <button class="btn btn-primary" type="submit">Log Masuk</button>
+      </form>
+      <p class="tiny muted">Akses hanya untuk ahli keluarga yang telah diluluskan.</p>
+    </div>
+  </section>
+
+  <div id="app-shell" class="app-shell hidden">
+    <header class="topbar">
+      <div><p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p><h2 id="page-title">Library</h2></div>
+      <button id="profile-chip" class="profile-chip" type="button" data-nav="profile"><span id="profile-initial">H</span></button>
+    </header>
+
+    <main class="main-content">
+      <section id="view-home" class="view">
+        <div class="hero-card">
+          <div><p class="eyebrow light">KOLEKSI KELUARGA</p><h1>Home Library<br>Nilai Impian</h1><p>Koleksi Peribadi Zamri &amp; Nor Azzah</p></div>
+          <div class="hero-book" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card"><span class="stat-label">Judul</span><strong id="stat-titles">—</strong></article>
+          <article class="stat-card"><span class="stat-label">Naskhah</span><strong id="stat-copies">—</strong></article>
+          <article class="stat-card"><span class="stat-label">Tersedia</span><strong id="stat-available">—</strong></article>
+        </div>
+        <div class="section-heading"><div><p class="eyebrow">TERKINI</p><h3>Baru Ditambah</h3></div><button class="text-btn" data-nav="catalogue">Lihat semua</button></div>
+        <div id="latest-list" class="book-list"></div>
+      </section>
+
+      <section id="view-catalogue" class="view hidden">
+        <div class="search-wrap"><input id="catalogue-search" type="search" placeholder="Cari tajuk, penulis, ISBN…" autocomplete="off"></div>
+        <div class="filter-row">
+          <button class="pill active" data-filter="ALL">Semua</button><button class="pill" data-filter="AVAILABLE">Tersedia</button><button class="pill" data-filter="BORROWED">Dipinjam</button><button class="pill" data-filter="MISSING">Hilang</button>
+        </div>
+        <div id="catalogue-meta" class="catalogue-meta muted"></div>
+        <div id="catalogue-list" class="book-list"></div>
+      </section>
+
+      <section id="view-add" class="view hidden">
+        <div class="section-heading standalone"><div><p class="eyebrow">CATALOGUE</p><h3>Tambah Buku</h3><p class="muted">Round 1 menggunakan manual entry. Scan ISBN akan ditambah kemudian.</p></div></div>
+        <form id="add-book-form" class="panel form-stack two-col">
+          <label class="full"><span>Judul *</span><input name="title" required placeholder="Contoh: Seni Bahasa Badan"></label>
+          <label class="full"><span>Penulis *</span><input name="authors" required placeholder="Pisahkan dengan koma jika lebih seorang"></label>
+          <label><span>ISBN 13</span><input name="isbn13" inputmode="numeric" placeholder="978…"></label>
+          <label><span>Tahun Terbit</span><input name="year" type="number" min="1000" max="2100" placeholder="2026"></label>
+          <label class="full"><span>Penerbit</span><input name="publisher" placeholder="Nama penerbit"></label>
+          <label><span>Bahasa</span><input name="language" placeholder="Malay / English"></label>
+          <label><span>No. Siri / Accession</span><input name="accession" placeholder="Contoh HLNI-2026-0001"></label>
+          <label><span>Call No.</span><input name="callno" placeholder="Call number lama / baru"></label>
+          <label><span>Rak</span><input name="shelf" placeholder="Contoh A-03"></label>
+          <label><span>Condition</span><select name="condition"><option value="">—</option><option>New</option><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option></select></label>
+          <label><span>Tarikh Beli</span><input name="acquisition_date" type="date"></label>
+          <label><span>Harga Beli (RM)</span><input name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></label>
+          <label><span>Dibeli Dari</span><input name="purchased_from" placeholder="Kinokuniya / Popular / dll."></label>
+          <label><span>Pemilik</span><input name="owner_label" placeholder="Zamri / Nor Azzah / Family"></label>
+          <label class="full"><span>URL Cover</span><input name="cover_url" type="url" placeholder="https://…"></label>
+          <label class="full"><span>Nota</span><textarea name="notes" rows="3" placeholder="Apa-apa catatan tentang naskhah ini"></textarea></label>
+          <div class="full action-row"><button class="btn btn-primary" type="submit">Simpan Buku</button><button class="btn btn-secondary" type="reset">Kosongkan</button></div>
+        </form>
+      </section>
+
+      <section id="view-activity" class="view hidden">
+        <div class="section-heading standalone"><div><p class="eyebrow">AUDIT TRAIL</p><h3>Aktiviti Keluarga</h3><p class="muted">Siapa ubah apa, dan bila.</p></div></div>
+        <div id="activity-list" class="activity-list"></div>
+      </section>
+
+      <section id="view-profile" class="view hidden">
+        <div class="panel form-stack"><div><p class="eyebrow">ACCOUNT</p><h3>Profile</h3></div><label><span>Nama Paparan</span><input id="profile-name" placeholder="Nama"></label><label><span>Email</span><input id="profile-email" disabled></label><button id="save-profile" class="btn btn-primary" type="button">Simpan Nama</button><hr><button id="logout-btn" class="btn btn-danger" type="button">Log Keluar</button></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-nav="home"><span class="nav-icon">⌂</span><span>Home</span></button>
+      <button class="nav-btn" data-nav="catalogue"><span class="nav-icon">▤</span><span>Katalog</span></button>
+      <button class="nav-btn add-nav" data-nav="add"><span class="nav-plus">＋</span><span>Tambah</span></button>
+      <button class="nav-btn" data-nav="activity"><span class="nav-icon">↺</span><span>Aktiviti</span></button>
+      <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profile</span></button>
+    </nav>
+  </div>
+
+  <dialog id="book-dialog" class="book-dialog"><div class="dialog-head"><button id="close-dialog" class="icon-btn">×</button></div><div id="book-detail"></div></dialog>
+
+  <dialog id="edit-dialog" class="book-dialog edit-dialog">
+    <div class="dialog-head"><strong>Edit Rekod</strong><button id="close-edit-dialog" class="icon-btn">×</button></div>
+    <form id="edit-book-form" class="form-stack two-col dialog-form">
+      <input type="hidden" name="book_id"><input type="hidden" name="copy_id">
+      <label class="full"><span>Judul</span><input name="title" required></label>
+      <label><span>Tahun Terbit</span><input name="year" type="number" min="1000" max="2100"></label><label><span>ISBN 13</span><input name="isbn13"></label>
+      <label class="full"><span>Penerbit</span><input name="publisher"></label>
+      <label><span>No. Siri / Accession</span><input name="accession"></label>
+      <label><span>Status</span><select name="status"><option value="AVAILABLE">AVAILABLE</option><option value="BORROWED">BORROWED</option><option value="MISSING">MISSING</option><option value="REPAIR">REPAIR</option></select></label>
+      <label><span>Rak</span><input name="shelf"></label><label><span>Condition</span><input name="condition"></label>
+      <label><span>Tarikh Beli</span><input name="acquisition_date" type="date"></label><label><span>Harga Beli (RM)</span><input name="purchase_price" type="number" min="0" step="0.01"></label>
+      <label><span>Dibeli Dari</span><input name="purchased_from"></label><label><span>Pemilik</span><input name="owner_label"></label>
+      <label><span>Call No.</span><input name="callno"></label><label class="full"><span>URL Cover</span><input name="cover_url" type="url"></label>
+      <label class="full"><span>Nota</span><textarea name="notes" rows="3"></textarea></label>
+      <p class="tiny muted full">Penulis dikekalkan dalam Round 1 untuk elakkan perubahan hubungan author secara tidak sengaja.</p>
+      <div class="full action-row"><button class="btn btn-primary" type="submit">Simpan Perubahan</button><button id="archive-copy" class="btn btn-danger" type="button">Archive Naskhah</button></div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
