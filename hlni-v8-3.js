@@ -21,7 +21,7 @@ const familyDb = createClient(HLNI_SUPABASE_URL, HLNI_SUPABASE_PUBLISHABLE_KEY, 
   }
 });
 
-const STYLE_ID = 'hlni-v8-4-styles';
+const STYLE_ID = 'hlni-v8-5-styles';
 
 function installStyles() {
   if (document.getElementById(STYLE_ID)) return;
@@ -867,17 +867,10 @@ async function refreshFamilyStats() {
     if (reviewsRes.error) throw reviewsRes.error;
     if (worksRes.error) throw worksRes.error;
 
-    const reading = new Set();
-    const read = new Set();
-    (reviewsRes.data || []).forEach(row => {
-      if (!row.book_id) return;
-      if (row.reading_status === 'READING') reading.add(row.book_id);
-      if (row.reading_status === 'READ') read.add(row.book_id);
-    });
-
+    const reviewRows = reviewsRes.data || [];
     familyStatExpected = {
-      reading: reading.size,
-      read: read.size,
+      reading: reviewRows.filter(row => row.reading_status === 'READING').length,
+      read: reviewRows.filter(row => row.reading_status === 'READ').length,
       works: Number(worksRes.count || 0)
     };
     setFamilyStatLabels();
@@ -1115,6 +1108,75 @@ function initFamilyStatShortcuts() {
 }
 
 /* ========================================================================== */
+/* FAMILY HOME: editorial activity + compact latest collection                */
+/* ========================================================================== */
+
+function editorializeReadingFeedRow(row) {
+  if (!row || row.dataset.hlniEditorial === '1') return;
+  const strong = row.querySelector('strong');
+  const p = row.querySelector('p');
+  if (!strong || !p) return;
+
+  const [rawName, rawStatus = ''] = strong.textContent.split('·').map(x => x.trim());
+  const starNode = p.querySelector('.stars');
+  const starText = starNode?.textContent?.trim() || '';
+  let title = p.textContent || '';
+  if (starText) title = title.replace(starText, '');
+  title = title.replace(/\s*·\s*$/, '').trim();
+  if (!title) return;
+
+  const status = normalizeSearch(rawStatus);
+  let action = 'Membaca';
+  if (status.includes('selesai')) action = 'Selesai membaca';
+  else if (status.includes('sedang')) action = 'Sedang membaca';
+
+  row.dataset.hlniEditorial = '1';
+  row.classList.add('hlni-editorial-reading-row');
+  strong.textContent = rawName || 'Family member';
+  p.replaceChildren(document.createTextNode(`${action} `));
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'hlni-editorial-book-title';
+  titleSpan.textContent = title;
+  p.appendChild(titleSpan);
+
+  if (starText) {
+    const rating = document.createElement('div');
+    rating.className = 'hlni-editorial-stars stars';
+    rating.textContent = starText;
+    p.insertAdjacentElement('afterend', rating);
+  }
+}
+
+function enhanceFamilyHomeContent() {
+  const home = document.getElementById('view-home');
+  if (!home) return;
+
+  const feed = document.getElementById('recent-reading-list');
+  if (feed) {
+    [...feed.children].forEach((row, index) => {
+      row.hidden = index >= 3;
+      if (index < 3) editorializeReadingFeedRow(row);
+    });
+  }
+
+  const latest = document.getElementById('latest-list');
+  if (latest) {
+    [...latest.children].forEach((row, index) => {
+      row.hidden = index >= 4;
+      if (index < 4) row.classList.add('hlni-family-latest-card');
+    });
+  }
+}
+
+function initFamilyHomeEnhancements() {
+  const feed = document.getElementById('recent-reading-list');
+  const latest = document.getElementById('latest-list');
+  enhanceFamilyHomeContent();
+  if (feed) new MutationObserver(enhanceFamilyHomeContent).observe(feed, { childList: true, subtree: false });
+  if (latest) new MutationObserver(enhanceFamilyHomeContent).observe(latest, { childList: true, subtree: false });
+}
+
+/* ========================================================================== */
 /* Init                                                                       */
 /* ========================================================================== */
 
@@ -1124,6 +1186,7 @@ function init() {
   initVisitorTicker();
   initPublicStatShortcuts();
   initFamilyStatShortcuts();
+  initFamilyHomeEnhancements();
 
   // Public categories and family categories are populated asynchronously by
   // the existing scripts, so this keeps enhancements in sync without changing
@@ -1132,6 +1195,7 @@ function init() {
     initCategorySearch();
     initPublicStatShortcuts();
     initFamilyStatShortcuts();
+    enhanceFamilyHomeContent();
     scheduleFamilyStatsRefresh(0);
   }, 900);
 }

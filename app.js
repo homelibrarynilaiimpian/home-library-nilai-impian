@@ -24,7 +24,8 @@ const state = {
   lastLookupMeta: null,
   scanner: null,
   readingRows: [],
-  reviewRating: 'ALL'
+  reviewRating: 'ALL',
+  reviewSort: 'FINISHED_DESC'
 };
 
 const $ = (s, p = document) => p.querySelector(s);
@@ -400,7 +401,7 @@ async function navigate(name, updateHash = true) {
   $(`#view-${name}`).classList.remove('hidden');
   const navName = ['archive','activity'].includes(name) ? 'profile' : name;
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === navName));
-  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Ulasan Buku', activity: 'Aktiviti', profile: 'Profile', archive: 'Archive & Trash' };
+  const titles = { home: 'Library', catalogue: 'Katalog', add: 'Tambah Buku', reading: 'Ulasan Buku', activity: 'Aktiviti', profile: 'Profil', archive: 'Archive & Trash' };
   $('#page-title').textContent = titles[name];
   if (updateHash) history.replaceState(null, '', `#${name}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -493,15 +494,27 @@ async function loadReadingHub() {
   renderReadingHub();
 }
 
+function sortReadingRowsByFinished(rows = [], direction = 'FINISHED_DESC') {
+  const asc = direction === 'FINISHED_ASC';
+  return [...rows].sort((a, b) => {
+    const aDate = String(a?.finished_at || '').trim();
+    const bDate = String(b?.finished_at || '').trim();
+    if (!aDate && !bDate) return 0;
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+    return asc ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate);
+  });
+}
+
 function renderReadingHub() {
   const rows = (state.readingRows || []).filter(r => r.rating || String(r.review_text || '').trim());
   const q = ($('#reading-search')?.value || '').trim().toLowerCase();
-  const filtered = rows.filter(r => {
+  const filtered = sortReadingRowsByFinished(rows.filter(r => {
     const matchRating = state.reviewRating === 'ALL' || Number(r.rating) === Number(state.reviewRating);
     const authors = (r.book?.book_authors || []).map(x => x?.author?.name).filter(Boolean).join(', ');
     const hay = [r.book?.title, authors, r.reviewer?.display_name, r.review_text, readingStatusLabel(r.reading_status)].filter(Boolean).join(' ').toLowerCase();
     return matchRating && (!q || hay.includes(q));
-  });
+  }), state.reviewSort);
 
   const meta = $('#reading-hub-meta');
   if (meta) meta.textContent = `${filtered.length} ulasan`;
@@ -1489,6 +1502,10 @@ $$('[name="accession"]').forEach(el => {
 });
 
 $('#reading-search')?.addEventListener('input', renderReadingHub);
+$('#reading-sort')?.addEventListener('change', e => {
+  state.reviewSort = e.target.value || 'FINISHED_DESC';
+  renderReadingHub();
+});
 $$('[data-review-rating]').forEach(btn => btn.addEventListener('click', () => {
   state.reviewRating = btn.dataset.reviewRating || 'ALL';
   $$('[data-review-rating]').forEach(x => x.classList.toggle('active', x === btn));

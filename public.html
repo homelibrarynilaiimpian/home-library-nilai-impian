@@ -6,16 +6,19 @@
   <meta name="theme-color" content="#1f3b32">
   <title>Katalog Awam · Home Library Nilai Impian</title>
   <meta name="description" content="Katalog awam Koleksi Peribadi Zamri & Nor Azzah">
-  <link rel="icon" href="./assets/icon-192.png?v=8.0.1">
-  <link rel="apple-touch-icon" href="./assets/icon-180.png?v=8.0.1">
+  <link rel="manifest" href="./manifest.webmanifest?v=9.0.0">
+  <link rel="icon" href="./assets/favicon-v9.ico?v=9.0.0" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32-v9.png?v=9.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180-v9.png?v=9.0.0">
   <link rel="stylesheet" href="./styles.css?v=6.2.0">
   <link rel="stylesheet" href="./final-v8.css?v=8.0.1">
+  <link rel="stylesheet" href="./hlni-v8-5.css?v=8.5.0">
 </head>
 <body class="public-body public-v8">
   <div class="public-shell public-shell-v8">
     <header class="public-header public-header-v8">
       <div class="public-brand public-brand-v8">
-        <img class="public-logo" src="./assets/logo-main.jpeg?v=8.0.1" alt="Home Library Nilai Impian">
+        <img class="public-logo" src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian">
         <div>
           <h1>Home Library Nilai Impian</h1>
           <p>Koleksi Peribadi Zamri &amp; Nor Azzah</p>
@@ -75,7 +78,13 @@
         <h2>Ulasan Buku</h2>
       </div>
       <div class="public-reading-toolbar public-review-toolbar-v8">
-        <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis atau pengulas…">
+        <div class="review-search-sort-row public-review-search-sort-row">
+          <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis atau pengulas…">
+          <select id="public-reading-sort" class="review-date-sort" aria-label="Susun ulasan mengikut tarikh habis baca">
+            <option value="FINISHED_DESC">Tarikh Habis Baca — Terbaru</option>
+            <option value="FINISHED_ASC">Tarikh Habis Baca — Terlama</option>
+          </select>
+        </div>
         <div class="filter-row star-filter-row compact-star-filters" aria-label="Tapis ulasan ikut rating">
           <button class="pill active" data-public-review-rating="" type="button">Semua</button>
           <button class="pill star-filter" data-public-review-rating="5" type="button">5★</button>
@@ -96,6 +105,20 @@
       <p class="public-note" id="public-familyworks-meta">Memuatkan karya keluarga…</p>
       <div id="public-familyworks-grid" class="public-grid"></div>
     </section>
+
+    <footer class="public-social-footer" aria-label="Media sosial Home Library Nilai Impian">
+      <p class="eyebrow">IKUTI KAMI</p>
+      <div class="public-social-links">
+        <a href="https://facebook.com/homelibrarynilaiimpian" target="_blank" rel="noopener noreferrer" aria-label="Facebook Home Library Nilai Impian, buka di tab baharu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.6 1.6-1.6h1.7V3.8c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2h-2.8v3h2.8v8h3.4Z" fill="currentColor"/></svg>
+          <span>Home Library Nilai Impian</span>
+        </a>
+        <a href="https://facebook.com/littlefreelibrarynilaiimpian" target="_blank" rel="noopener noreferrer" aria-label="Facebook Little Free Library Nilai Impian, buka di tab baharu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.6 1.6-1.6h1.7V3.8c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2h-2.8v3h2.8v8h3.4Z" fill="currentColor"/></svg>
+          <span>Little Free Library Nilai Impian</span>
+        </a>
+      </div>
+    </footer>
   </div>
 
   <dialog id="public-book-dialog" class="public-dialog">
@@ -103,7 +126,7 @@
     <div id="public-book-detail" class="public-detail"></div>
   </dialog>
 
-  <script type="module" src="./public.js?v=8.1.0"></script>
-  <script type="module" src="./hlni-v8-3.js?v=8.3.0"></script>
+  <script type="module" src="./public.js?v=8.5.0"></script>
+  <script type="module" src="./hlni-v8-3.js?v=8.5.0"></script>
 </body>
 </html>

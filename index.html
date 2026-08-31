@@ -8,18 +8,20 @@
   <meta name="apple-mobile-web-app-title" content="HL Nilai Impian">
   <title>Home Library Nilai Impian</title>
   <meta name="description" content="Koleksi Peribadi Zamri & Nor Azzah">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./assets/icon-180.png?v=8.0.1">
-  <link rel="icon" href="./assets/icon-192.png?v=8.0.1">
+  <link rel="manifest" href="./manifest.webmanifest?v=9.0.0">
+  <link rel="icon" href="./assets/favicon-v9.ico?v=9.0.0" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32-v9.png?v=9.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180-v9.png?v=9.0.0">
   <link rel="stylesheet" href="./styles.css?v=6.2.0">
   <link rel="stylesheet" href="./final-v8.css?v=8.0.0">
+  <link rel="stylesheet" href="./hlni-v8-5.css?v=8.5.0">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <section id="auth-screen" class="auth-screen">
     <div class="auth-card">
-      <div class="brand-mark"><img src="./assets/logo-main.jpeg?v=8.0.1" alt="Home Library Nilai Impian"></div>
+      <div class="brand-mark"><img src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian"></div>
       <p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p>
       <h1>Koleksi Peribadi<br>Zamri &amp; Nor Azzah</h1>
       <p class="muted auth-copy">Katalog keluarga untuk menyimpan, mencari, membaca dan mengurus koleksi buku di rumah.</p>
@@ -47,28 +49,38 @@
   </section>
 
   <div id="app-shell" class="app-shell hidden">
-    <header class="topbar">
-      <div class="topbar-brand"><img class="topbar-logo" src="./assets/logo-main.jpeg?v=8.0.1" alt="Home Library Nilai Impian"><div><p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p><h2 id="page-title">Library</h2></div></div>
-      <button id="profile-chip" class="profile-chip" type="button" data-nav="profile"><span id="profile-initial">H</span></button>
+    <header class="topbar family-topbar">
+      <div class="topbar-brand family-topbar-brand">
+        <img class="topbar-logo" src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian">
+        <div class="family-header-copy">
+          <h1>Home Library Nilai Impian</h1>
+          <p>Koleksi Peribadi Zamri &amp; Nor Azzah</p>
+          <span id="page-title" class="family-route-title" aria-live="polite">Home</span>
+        </div>
+      </div>
+      <button id="profile-chip" class="profile-chip" type="button" data-nav="profile" aria-label="Buka profil keluarga"><span id="profile-initial">H</span></button>
     </header>
 
     <main class="main-content">
       <section id="view-home" class="view">
-        <div class="hero-card">
-          <div><p class="eyebrow light">KOLEKSI KELUARGA</p><h1>Home Library<br>Nilai Impian</h1><p>Koleksi Peribadi Zamri &amp; Nor Azzah</p></div>
-          <div class="hero-logo-wrap" aria-hidden="true"><img class="hero-logo" src="./assets/logo-main.jpeg?v=8.0.1" alt=""></div>
+        <div class="hero-card family-home-hero">
+          <div>
+            <p class="eyebrow light">KOLEKSI KELUARGA</p>
+            <h1>Home Library Nilai Impian</h1>
+            <p>Ruang keluarga untuk mengurus koleksi dan rekod bacaan bersama.</p>
+          </div>
         </div>
         <div class="stats-grid stats-grid-four">
           <article class="stat-card"><span class="stat-label">Judul</span><strong id="stat-titles">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Naskhah</span><strong id="stat-copies">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Tersedia</span><strong id="stat-available">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Selesai Dibaca</span><strong id="stat-read">—</strong></article>
+          <article class="stat-card"><span class="stat-label">Sedang Dibaca</span><strong id="stat-copies">—</strong></article>
+          <article class="stat-card"><span class="stat-label">Selesai Dibaca</span><strong id="stat-available">—</strong></article>
+          <article class="stat-card"><span class="stat-label">Karya Keluarga</span><strong id="stat-read">—</strong></article>
         </div>
 
-        <div class="section-heading"><div><p class="eyebrow">BACAAN KELUARGA</p><h3>Aktiviti Bacaan Terkini</h3></div><button class="text-btn" data-nav="reading">Lihat semua</button></div>
+        <div class="section-heading"><div><p class="eyebrow">AKTIVITI KELUARGA</p><h3>Bacaan Terkini</h3></div><button class="text-btn" data-nav="reading">Lihat semua</button></div>
         <div id="recent-reading-list" class="reading-feed"></div>
 
-        <div class="section-heading"><div><p class="eyebrow">TERKINI</p><h3>Baru Ditambah</h3></div><button class="text-btn" data-nav="catalogue">Lihat semua</button></div>
+        <div class="section-heading"><div><p class="eyebrow">KOLEKSI KELUARGA</p><h3>Baru Ditambah</h3></div><button class="text-btn" data-nav="catalogue">Lihat semua</button></div>
         <div id="latest-list" class="book-list"></div>
       </section>
 
@@ -90,7 +102,13 @@
           <div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan Buku</h3></div>
         </div>
         <div class="reading-toolbar panel compact-review-toolbar">
-          <input id="reading-search" type="search" placeholder="Cari tajuk, penulis atau pengulas…" autocomplete="off">
+          <div class="review-search-sort-row">
+            <input id="reading-search" type="search" placeholder="Cari tajuk, penulis atau pengulas…" autocomplete="off">
+            <select id="reading-sort" class="review-date-sort" aria-label="Susun ulasan mengikut tarikh habis baca">
+              <option value="FINISHED_DESC">Tarikh Habis Baca — Terbaru</option>
+              <option value="FINISHED_ASC">Tarikh Habis Baca — Terlama</option>
+            </select>
+          </div>
           <div class="filter-row star-filter-row compact-star-filters" aria-label="Tapis ikut rating">
             <button class="pill active" data-review-rating="ALL" type="button">Semua</button>
             <button class="pill star-filter" data-review-rating="5" type="button">5★</button>
@@ -181,7 +199,7 @@
       <button class="nav-btn" data-nav="catalogue"><span class="nav-icon">▤</span><span>Katalog</span></button>
       <button class="nav-btn add-nav" data-nav="add"><span class="nav-plus">＋</span><span>Tambah</span></button>
       <button class="nav-btn" data-nav="reading"><span class="nav-icon">★</span><span>Ulasan</span></button>
-      <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profile</span></button>
+      <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profil</span></button>
     </nav>
   </div>
 
@@ -220,7 +238,7 @@
   </dialog>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script type="module" src="./app.js?v=8.0.0"></script>
-  <script type="module" src="./hlni-v8-3.js?v=8.3.0"></script>
+  <script type="module" src="./app.js?v=8.5.0"></script>
+  <script type="module" src="./hlni-v8-3.js?v=8.5.0"></script>
 </body>
 </html>

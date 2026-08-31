@@ -1,0 +1,447 @@
+/* HLNI V8.5 — targeted family visual alignment + review sorting + public footer */
+
+/* -------------------------------------------------------------------------- */
+/* FAMILY / PRIVATE — shared public visual language                           */
+/* -------------------------------------------------------------------------- */
+body:not(.public-body){
+  background:
+    radial-gradient(circle at 78% -8%,rgba(195,166,108,.18),transparent 29rem),
+    #f5f0e5;
+}
+
+.app-shell{
+  max-width:1080px;
+  padding-bottom:96px;
+}
+
+.family-topbar{
+  padding:14px 20px;
+  background:rgba(245,240,229,.94);
+  border-bottom:1px solid rgba(221,212,195,.72);
+  box-shadow:0 5px 18px rgba(31,59,50,.025);
+}
+
+.family-topbar-brand{
+  min-width:0;
+  gap:13px;
+}
+
+.family-topbar .topbar-logo{
+  width:50px;
+  height:50px;
+  border-radius:14px;
+  box-shadow:0 5px 16px rgba(31,59,50,.12);
+}
+
+.family-header-copy{
+  min-width:0;
+}
+
+.family-header-copy h1{
+  margin:0;
+  color:#15392f;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(1.08rem,2.4vw,1.42rem);
+  font-weight:600;
+  line-height:1.08;
+  letter-spacing:-.012em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.family-header-copy p{
+  margin:4px 0 0;
+  color:#77776e;
+  font-size:.76rem;
+  line-height:1.3;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.family-route-title{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+
+.family-topbar .profile-chip{
+  flex:0 0 auto;
+  width:42px;
+  height:42px;
+  background:#173f34;
+  color:#f5e8c9;
+  border:1px solid rgba(195,166,108,.28);
+  box-shadow:0 5px 14px rgba(31,59,50,.11);
+}
+
+.main-content{
+  padding:20px 22px 28px;
+}
+
+.family-home-hero{
+  min-height:0;
+  padding:22px 24px;
+  border-radius:22px;
+  align-items:center;
+  background:linear-gradient(112deg,#123d31 0%,#174638 62%,#11372d 100%);
+  box-shadow:0 10px 28px rgba(31,59,50,.10);
+}
+
+.family-home-hero>div{
+  max-width:720px;
+}
+
+.family-home-hero h1{
+  margin:1px 0 0;
+  font-size:clamp(1.8rem,4.5vw,2.55rem);
+  line-height:1.02;
+  letter-spacing:-.025em;
+}
+
+.family-home-hero p:last-child{
+  max-width:620px;
+  margin:8px 0 0;
+  color:#ded7c8;
+  font-size:.88rem;
+  line-height:1.55;
+}
+
+/* Family stats now mirror public feature-strip cards. */
+#view-home .stats-grid-four{
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin:12px 0 24px;
+}
+
+#view-home .stat-card{
+  min-height:92px;
+  padding:14px 16px;
+  border-radius:17px;
+  background:#fffdf8;
+  border:1px solid #dfd6c5;
+  box-shadow:none;
+}
+
+#view-home .stat-card .stat-label{
+  color:#76776f;
+  font-size:.72rem;
+}
+
+#view-home .stat-card strong{
+  color:#172d25;
+  margin-top:8px;
+  font-size:1.65rem;
+}
+
+#view-home .section-heading{
+  margin-top:22px;
+  margin-bottom:11px;
+  align-items:end;
+}
+
+#view-home .section-heading h3{
+  color:#183d32;
+  font-size:1.55rem;
+}
+
+#view-home .text-btn,
+#app-shell a,
+#app-shell .link-btn{
+  color:#214b3f;
+}
+
+#view-home .text-btn{
+  border-radius:999px;
+  padding:7px 10px;
+  font-size:.76rem;
+}
+
+#view-home .text-btn:hover{
+  background:rgba(31,59,50,.055);
+}
+
+/* Editorial family reading activity. */
+#recent-reading-list{
+  gap:9px;
+}
+
+#recent-reading-list .reading-feed-row{
+  grid-template-columns:48px minmax(0,1fr) auto;
+  padding:11px 12px;
+  border-radius:16px;
+  border-color:#e1d8c8;
+  background:#fffdf8;
+  box-shadow:0 4px 14px rgba(31,59,50,.025);
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+
+#recent-reading-list .reading-cover{
+  width:48px;
+  height:64px;
+  border-radius:8px;
+}
+
+#recent-reading-list .reading-feed-row strong{
+  display:block;
+  color:#203b33;
+  font-size:.82rem;
+  font-weight:800;
+}
+
+#recent-reading-list .reading-feed-row p{
+  margin:4px 0 0;
+  color:#69716c;
+  font-size:.78rem;
+  line-height:1.45;
+}
+
+.hlni-editorial-book-title{
+  color:#214b3f;
+  font-family:Georgia,"Times New Roman",serif;
+  font-weight:600;
+}
+
+.hlni-editorial-stars{
+  margin-top:5px;
+  font-size:.76rem;
+}
+
+@media (hover:hover){
+  #recent-reading-list .reading-feed-row:hover,
+  #latest-list .hlni-family-latest-card:hover{
+    transform:translateY(-1px);
+    border-color:rgba(184,145,69,.34);
+    box-shadow:0 8px 20px rgba(31,59,50,.05);
+  }
+}
+
+/* Latest collection — softer public-card language. */
+#latest-list{
+  gap:10px;
+}
+
+#latest-list .hlni-family-latest-card{
+  padding:12px;
+  border-radius:17px;
+  border-color:#e0d7c6;
+  background:#fffdf8;
+  box-shadow:0 4px 14px rgba(31,59,50,.025);
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+
+#latest-list .hlni-family-latest-card .book-cover{
+  width:60px;
+  height:82px;
+  border-radius:9px;
+}
+
+#latest-list .hlni-family-latest-card{
+  grid-template-columns:60px minmax(0,1fr) auto;
+}
+
+#latest-list .hlni-family-latest-card .book-title{
+  color:#1d493b;
+  font-size:1.02rem;
+  font-weight:650;
+}
+
+#latest-list .hlni-family-latest-card .book-sub{
+  color:#777970;
+}
+
+/* Family review toolbar / sort control. */
+.review-search-sort-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(240px,300px);
+  gap:9px;
+  width:100%;
+}
+
+.review-search-sort-row input,
+.review-date-sort{
+  min-height:46px;
+  border-radius:13px;
+  border:1px solid #ddd4c3;
+  background:#fffdf8;
+  color:#243b32;
+}
+
+.review-date-sort{
+  padding:10px 12px;
+  font-size:.78rem;
+  font-weight:700;
+}
+
+.compact-review-toolbar{
+  border-radius:18px;
+  border-color:#dfd6c5;
+  background:#fffdf8;
+  box-shadow:none;
+}
+
+/* Family bottom navigation — quieter and more premium. */
+.bottom-nav{
+  width:min(calc(100% - 16px),1040px);
+  bottom:8px;
+  border:1px solid rgba(222,214,198,.95);
+  border-radius:18px;
+  background:rgba(255,253,248,.97);
+  padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
+  box-shadow:0 12px 34px rgba(31,59,50,.10);
+}
+
+.nav-btn{
+  color:#8a8d88;
+  padding:5px 4px;
+  font-size:.64rem;
+}
+
+.nav-btn.active{
+  color:#173f34;
+}
+
+.add-nav{
+  transform:translateY(-8px);
+}
+
+.nav-plus{
+  width:40px;
+  height:40px;
+  font-size:1.55rem;
+  background:#173f34;
+  color:#f9f2e2;
+  box-shadow:0 6px 14px rgba(31,59,50,.18);
+}
+
+.nav-icon{
+  font-size:1.22rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* PUBLIC — review sorting + discreet social footer                           */
+/* -------------------------------------------------------------------------- */
+.public-review-toolbar-v8{
+  display:grid!important;
+  gap:9px!important;
+}
+
+.public-review-search-sort-row{
+  grid-template-columns:minmax(0,1fr) minmax(240px,300px);
+}
+
+.public-review-search-sort-row input{
+  min-height:48px;
+  border-radius:14px;
+  border:1px solid #ddd4c3;
+  background:#fffdf8;
+}
+
+.public-review-search-sort-row .review-date-sort{
+  min-height:48px;
+  background:#fffdf8;
+}
+
+.public-social-footer{
+  margin-top:34px;
+  padding:22px 2px 4px;
+  border-top:1px solid #ddd4c3;
+}
+
+.public-social-footer .eyebrow{
+  margin-bottom:10px;
+  color:#6b765f;
+}
+
+.public-social-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 20px;
+}
+
+.public-social-links a{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:#214b3f;
+  text-decoration:none;
+  font-size:.78rem;
+  font-weight:700;
+  line-height:1.4;
+  border-radius:8px;
+  padding:4px 3px;
+  transition:color .15s ease,background .15s ease;
+}
+
+.public-social-links svg{
+  width:16px;
+  height:16px;
+  flex:none;
+  color:#5d705f;
+}
+
+.public-social-links a:hover{
+  color:#173f34;
+  background:rgba(31,59,50,.045);
+}
+
+.public-social-links a:focus-visible{
+  outline:2px solid rgba(184,145,69,.7);
+  outline-offset:3px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive                                                                  */
+/* -------------------------------------------------------------------------- */
+@media (max-width:720px){
+  .main-content{padding:16px 14px 24px}
+  .family-topbar{padding:11px 14px}
+  .family-topbar .topbar-logo{width:44px;height:44px;border-radius:12px}
+  .family-header-copy h1{font-size:1.04rem}
+  .family-header-copy p{font-size:.69rem}
+  .family-topbar .profile-chip{width:39px;height:39px}
+
+  .family-home-hero{padding:19px 19px;border-radius:20px}
+  .family-home-hero h1{font-size:1.78rem}
+  .family-home-hero p:last-child{font-size:.82rem}
+
+  #view-home .stats-grid-four{
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+    margin-bottom:21px;
+  }
+  #view-home .stat-card{min-height:84px;padding:12px 13px}
+  #view-home .stat-card strong{font-size:1.5rem}
+
+  .review-search-sort-row,
+  .public-review-search-sort-row{
+    grid-template-columns:1fr;
+  }
+
+  .review-date-sort{width:100%}
+
+  .bottom-nav{
+    width:calc(100% - 12px);
+    bottom:6px;
+    border-radius:16px;
+  }
+
+  .public-social-footer{margin-top:28px;padding-top:18px}
+  .public-social-links{display:grid;gap:7px}
+}
+
+@media (max-width:420px){
+  .family-header-copy h1{font-size:.98rem}
+  .family-header-copy p{font-size:.65rem}
+  .family-topbar-brand{gap:9px}
+  .family-topbar .topbar-logo{width:41px;height:41px}
+  #recent-reading-list .reading-feed-row{grid-template-columns:44px minmax(0,1fr) auto}
+  #recent-reading-list .reading-cover{width:44px;height:59px}
+}

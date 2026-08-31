@@ -21,6 +21,7 @@ const state = {
   publicView: 'catalogue',
   reviewQuery: '',
   reviewRating: '',
+  reviewSort: 'FINISHED_DESC',
   reviewLoading: false,
   worksLoading: false
 };
@@ -303,6 +304,18 @@ function bindReviewExpanders() {
   });
 }
 
+function sortPublicReviewsByFinished(rows = [], direction = 'FINISHED_DESC') {
+  const asc = direction === 'FINISHED_ASC';
+  return [...rows].sort((a, b) => {
+    const aDate = String(a?.finished_at || '').trim();
+    const bDate = String(b?.finished_at || '').trim();
+    if (!aDate && !bDate) return 0;
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+    return asc ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate);
+  });
+}
+
 async function loadPublicReviews() {
   if (state.reviewLoading) return;
   state.reviewLoading = true;
@@ -318,8 +331,9 @@ async function loadPublicReviews() {
       p_offset: 0
     });
     if (error) throw error;
-    const rows = data || [];
-    const total = Number(rows?.[0]?.total_count || 0);
+    const rawRows = data || [];
+    const rows = sortPublicReviewsByFinished(rawRows, state.reviewSort);
+    const total = Number(rawRows?.[0]?.total_count || 0);
     meta.textContent = `${total.toLocaleString('ms-MY')} ulasan${state.reviewQuery ? ` · carian “${state.reviewQuery}”` : ''}`;
     list.innerHTML = rows.length ? rows.map(publicReviewCard).join('') : '<div class="empty">Belum ada ulasan yang sepadan.</div>';
     bindReviewExpanders();
@@ -371,6 +385,11 @@ $('#public-reading-search').addEventListener('input', e => {
   state.reviewQuery = e.target.value.trim();
   clearTimeout(reviewTimer);
   reviewTimer = setTimeout(() => loadPublicReviews(), 280);
+});
+
+$('#public-reading-sort')?.addEventListener('change', e => {
+  state.reviewSort = e.target.value || 'FINISHED_DESC';
+  loadPublicReviews();
 });
 
 $$('[data-public-review-rating]').forEach(btn => btn.addEventListener('click', () => {
