@@ -18,48 +18,19 @@ function installStyles() {
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = `
-    .hlni-category-native {
-      position: absolute !important;
-      width: 1px !important;
-      height: 1px !important;
-      padding: 0 !important;
-      margin: -1px !important;
-      overflow: hidden !important;
-      clip: rect(0, 0, 0, 0) !important;
-      white-space: nowrap !important;
-      border: 0 !important;
-    }
-
     .hlni-category-search {
       position: relative;
       display: grid;
       gap: 8px;
-      margin-top: 4px;
-    }
-
-    .hlni-category-auto {
-      width: max-content;
-      max-width: 100%;
-      border: 1px solid rgba(31, 59, 50, .20);
-      background: #fffdf7;
-      color: #1f3b32;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font: inherit;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .hlni-category-auto.active {
-      background: #1f3b32;
-      color: #fffaf0;
-      border-color: #1f3b32;
+      grid-column: 1 / -1;
+      margin-top: -2px;
+      margin-bottom: 2px;
     }
 
     .hlni-category-search-input {
       width: 100%;
       min-width: 0;
+      box-sizing: border-box;
     }
 
     .hlni-category-results {
@@ -70,6 +41,7 @@ function installStyles() {
       right: 0;
       max-height: 280px;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
       background: #fffdf8;
       border: 1px solid rgba(31, 59, 50, .16);
       border-radius: 14px;
@@ -86,12 +58,13 @@ function installStyles() {
       background: transparent;
       color: #203b33;
       border-radius: 10px;
-      padding: 10px 11px;
+      padding: 11px;
       text-align: left;
       font: inherit;
       font-size: 13px;
       line-height: 1.35;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .hlni-category-option:hover,
@@ -111,8 +84,8 @@ function installStyles() {
       min-height: 22px;
       margin: 2px 0 8px;
       color: #5d6d66;
-      font-size: 12px;
-      line-height: 22px;
+      font-size: 12px !important;
+      line-height: 22px !important;
       letter-spacing: .01em;
       white-space: nowrap;
     }
@@ -124,7 +97,7 @@ function installStyles() {
       min-width: max-content;
       padding-left: 100%;
       will-change: transform;
-      animation: hlniVisitorTicker 18s linear infinite;
+      animation: hlniVisitorTicker 18s linear infinite !important;
     }
 
     .hlni-visitor-ticker strong {
@@ -135,13 +108,6 @@ function installStyles() {
     @keyframes hlniVisitorTicker {
       from { transform: translateX(0); }
       to { transform: translateX(-100%); }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .hlni-visitor-ticker-track {
-        padding-left: 0;
-        animation: none;
-      }
     }
   `;
   document.head.appendChild(style);
@@ -162,16 +128,11 @@ function optionCode(text = '') {
 function enhanceCategorySelect(select) {
   if (!select || select.dataset.hlniSearchEnhanced === '1') return;
   select.dataset.hlniSearchEnhanced = '1';
-  select.classList.add('hlni-category-native');
 
+  // Keep the native selector visible as a reliable fallback on iPhone/Safari.
+  // The search box below it is only for quickly choosing a MANUAL LCC category.
   const wrap = document.createElement('div');
-  wrap.className = 'hlni-category-search';
-
-  const autoButton = document.createElement('button');
-  autoButton.type = 'button';
-  autoButton.className = 'hlni-category-auto';
-  autoButton.textContent = 'Auto ikut Call No.';
-  autoButton.setAttribute('aria-pressed', 'true');
+  wrap.className = 'hlni-category-search full';
 
   const input = document.createElement('input');
   input.type = 'search';
@@ -186,8 +147,10 @@ function enhanceCategorySelect(select) {
   results.className = 'hlni-category-results';
   results.hidden = true;
 
-  wrap.append(autoButton, input, results);
-  select.insertAdjacentElement('afterend', wrap);
+  wrap.append(input, results);
+
+  const categoryLabel = select.closest('label.category-control') || select.parentElement;
+  categoryLabel.insertAdjacentElement('afterend', wrap);
 
   const getOptions = () => [...select.options]
     .filter(option => option.value && option.value !== 'AUTO')
@@ -205,8 +168,6 @@ function enhanceCategorySelect(select) {
   function syncFromSelect() {
     const selected = select.options[select.selectedIndex];
     const isAuto = !selected || select.value === 'AUTO';
-    autoButton.classList.toggle('active', isAuto);
-    autoButton.setAttribute('aria-pressed', isAuto ? 'true' : 'false');
     if (isAuto) {
       if (document.activeElement !== input) input.value = '';
     } else if (document.activeElement !== input || !input.value.trim()) {
@@ -237,13 +198,15 @@ function enhanceCategorySelect(select) {
       })
       .filter(item => !q || item.rank < 9)
       .sort((a, b) => a.rank - b.rank || a.text.localeCompare(b.text, 'ms-MY'))
-      .slice(0, 14);
+      .slice(0, 18);
 
     results.replaceChildren();
     if (!ranked.length) {
       const empty = document.createElement('div');
       empty.className = 'hlni-category-empty';
-      empty.textContent = 'Tiada kategori yang sepadan.';
+      empty.textContent = getOptions().length
+        ? 'Tiada kategori yang sepadan.'
+        : 'Kategori sedang dimuatkan. Cuba lagi sebentar.';
       results.appendChild(empty);
     } else {
       ranked.forEach(item => {
@@ -251,7 +214,7 @@ function enhanceCategorySelect(select) {
         button.type = 'button';
         button.className = 'hlni-category-option';
         button.textContent = item.text;
-        button.addEventListener('mousedown', event => event.preventDefault());
+        button.addEventListener('pointerdown', event => event.preventDefault());
         button.addEventListener('click', event => {
           event.preventDefault();
           event.stopPropagation();
@@ -264,19 +227,9 @@ function enhanceCategorySelect(select) {
     input.setAttribute('aria-expanded', 'true');
   }
 
-  autoButton.addEventListener('click', event => {
-    event.preventDefault();
-    event.stopPropagation();
-    select.value = 'AUTO';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-    input.value = '';
-    syncFromSelect();
-    closeResults();
-  });
-
   input.addEventListener('focus', () => {
     if (select.value !== 'AUTO' && input.value) input.select();
-    renderResults('');
+    renderResults(input.value);
   });
   input.addEventListener('input', () => renderResults(input.value));
   input.addEventListener('keydown', event => {
@@ -286,11 +239,21 @@ function enhanceCategorySelect(select) {
     }
   });
 
-  select.addEventListener('change', syncFromSelect);
-  select.form?.addEventListener('reset', () => setTimeout(syncFromSelect, 0));
+  select.addEventListener('change', () => {
+    syncFromSelect();
+    closeResults();
+  });
+  select.form?.addEventListener('reset', () => setTimeout(() => {
+    syncFromSelect();
+    closeResults();
+  }, 0));
 
-  new MutationObserver(() => setTimeout(syncFromSelect, 0))
-    .observe(select, { childList: true, subtree: true });
+  new MutationObserver(() => {
+    setTimeout(() => {
+      syncFromSelect();
+      if (document.activeElement === input) renderResults(input.value);
+    }, 0);
+  }).observe(select, { childList: true, subtree: true });
 
   const editDialog = select.closest('dialog');
   if (editDialog) {
