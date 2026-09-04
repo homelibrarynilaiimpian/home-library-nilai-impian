@@ -78,9 +78,15 @@ function publicDate(value) {
   }
 }
 
+function money(value) {
+  if (value === null || value === undefined || value === '') return '—';
+  const n = Number(value);
+  return Number.isFinite(n) ? `RM ${n.toFixed(2)}` : '—';
+}
+
 function setupPending(error) {
   const msg = (error?.message || '').toLowerCase();
-  return /public_catalogue_stats_v8|public_catalogue_search_v8|public_family_reviews|function|is_family_work/.test(msg)
+  return /public_catalogue_stats_v8|public_catalogue_search_v8|public_family_reviews|public_book_detail_v86|function|is_family_work/.test(msg)
     && /not find|does not exist|schema cache|column/.test(msg);
 }
 
@@ -234,36 +240,50 @@ async function loadPublicBookReviews(bookId) {
       <div class="public-reviewer-line"><strong>${esc(r.reviewer_name || 'Family member')}</strong>${r.rating ? `<span class="stars">${stars(r.rating)}</span>` : ''}</div>
       <span class="reading-badge ${esc(r.reading_status)}">${esc(readingLabel(r.reading_status))}</span>
     </div>
-    ${r.review_text ? `<p>${esc(r.review_text)}</p>` : '<p class="muted">Tiada ulasan bertulis.</p>'}
+    ${r.review_text ? `<p class="review-preserve-lines">${esc(r.review_text)}</p>` : '<p class="muted">Tiada ulasan bertulis.</p>'}
     <small>${esc(r.finished_at ? `Selesai ${publicDate(r.finished_at)}` : r.started_at ? `Mula ${publicDate(r.started_at)}` : `Dikemaskini ${publicDate(r.updated_at)}`)}</small>
   </article>`).join('');
 }
 
-function openDetail(id) {
-  const book = getBook(id);
-  if (!book) return;
-  $('#public-book-detail').innerHTML = `<div class="detail-top">
-    ${cover(book.cover_url, 'detail-cover')}
-    <div>
-      <p class="eyebrow">KATALOG AWAM</p>
-      <h3 class="detail-title">${esc(book.title)}</h3>
-      <p class="detail-author">${esc(book.authors || 'Penulis tidak direkod')}</p>
-      ${familyWorkBadge(book)}
-      ${chips(book.categories)}
-      ${book.avg_rating ? `<div class="public-card-rating"><span class="stars">${stars(book.avg_rating)}</span> ${esc(book.avg_rating)} · ${Number(book.review_count) || 0} ulasan</div>` : ''}
+async function openDetail(id) {
+  const dialog = $('#public-book-dialog');
+  const detail = $('#public-book-detail');
+  detail.innerHTML = '<div class="empty compact">Memuatkan info buku…</div>';
+  if (!dialog.open) dialog.showModal();
+
+  try {
+    const { data, error } = await supabase.rpc('public_book_detail_v86', { p_book_id: id });
+    if (error) throw error;
+    const book = data?.[0] || data || null;
+    if (!book?.id) throw new Error('Rekod buku tidak dijumpai.');
+
+    detail.innerHTML = `<div class="detail-top">
+      ${cover(book.cover_url, 'detail-cover')}
+      <div>
+        <p class="eyebrow">KATALOG AWAM</p>
+        <h3 class="detail-title">${esc(book.title)}</h3>
+        <p class="detail-author">${esc(book.authors || 'Penulis tidak direkod')}</p>
+        ${familyWorkBadge(book)}
+        ${book.avg_rating ? `<div class="public-card-rating"><span class="stars">${stars(book.avg_rating)}</span> ${esc(book.avg_rating)} · ${Number(book.review_count) || 0} ulasan</div>` : ''}
+      </div>
     </div>
-  </div>
-  <div class="detail-grid">
-    <div class="detail-item"><span>Penerbit</span><strong>${esc(book.publisher || '—')}</strong></div>
-    <div class="detail-item"><span>Tahun</span><strong>${esc(book.publication_year || '—')}</strong></div>
-    <div class="detail-item"><span>Kategori</span><strong>${esc((book.categories || []).map(friendlyCategory).join(', ') || 'Lain-lain')}</strong></div>
-  </div>
-  <section class="public-review-section">
-    <div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan Keluarga</h3></div>
-    <div id="public-family-reviews"><div class="empty compact">Memuatkan ulasan…</div></div>
-  </section>`;
-  $('#public-book-dialog').showModal();
-  loadPublicBookReviews(id);
+    <div class="detail-grid public-six-info-grid">
+      <div class="detail-item"><span>Penerbit</span><strong>${esc(book.publisher || '—')}</strong></div>
+      <div class="detail-item"><span>Tahun</span><strong>${esc(book.publication_year || '—')}</strong></div>
+      <div class="detail-item"><span>Kategori</span><strong>${esc((book.categories || []).map(friendlyCategory).join(', ') || 'Lain-lain')}</strong></div>
+      <div class="detail-item"><span>Rak</span><strong>${esc(book.shelf || '—')}</strong></div>
+      <div class="detail-item"><span>Call No.</span><strong>${esc(book.call_no || '—')}</strong></div>
+      <div class="detail-item"><span>Harga</span><strong>${esc(money(book.purchase_price))}</strong></div>
+    </div>
+    <section class="public-review-section">
+      <div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan Keluarga</h3></div>
+      <div id="public-family-reviews"><div class="empty compact">Memuatkan ulasan…</div></div>
+    </section>`;
+    loadPublicBookReviews(id);
+  } catch (error) {
+    console.error(error);
+    detail.innerHTML = `<div class="empty compact">${esc(setupPending(error) ? 'Info buku V8.6 belum diaktifkan. Run SQL V8.6 sekali, kemudian refresh.' : (error?.message || 'Info buku tak dapat dimuatkan sekarang.'))}</div>`;
+  }
 }
 
 function publicReviewCard(review) {
@@ -278,14 +298,14 @@ function publicReviewCard(review) {
     ${cover(review.cover_url, 'reading-cover')}
     <div class="public-reading-main">
       <div class="public-reading-book">
-        <h3>${esc(review.title)}</h3>
+        <button class="public-review-book-title" type="button" data-public-review-book="${review.book_id}">${esc(review.title)}</button>
         <p>${esc(review.authors || 'Penulis tidak direkod')}${review.publication_year ? ` · ${esc(review.publication_year)}` : ''}</p>
       </div>
       <div class="public-review-head public-review-list-head">
         <div class="public-reviewer-line"><strong>${esc(review.reviewer_name || 'Family member')}</strong>${review.rating ? `<span class="stars">${stars(review.rating)}</span>` : ''}</div>
         <span class="reading-badge ${esc(review.reading_status)}">${esc(readingLabel(review.reading_status))}</span>
       </div>
-      ${reviewText ? `<p class="public-reading-review review-text-clamp">${esc(reviewText)}</p>${needsExpand ? '<button class="review-expand-btn" type="button" data-review-expand>Baca ulasan penuh →</button>' : ''}` : '<p class="muted">Tiada ulasan bertulis.</p>'}
+      ${reviewText ? `<p class="public-reading-review review-text-clamp review-preserve-lines">${esc(reviewText)}</p>${needsExpand ? '<button class="review-expand-btn" type="button" data-review-expand>Baca ulasan penuh →</button>' : ''}` : '<p class="muted">Tiada ulasan bertulis.</p>'}
       <small>${esc(date)}</small>
     </div>
   </article>`;
@@ -300,6 +320,16 @@ function bindReviewExpanders() {
       const expanded = text.classList.toggle('expanded');
       btn.textContent = expanded ? 'Tutup ulasan ↑' : 'Baca ulasan penuh →';
       btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    };
+  });
+}
+
+function bindReviewBookTitles() {
+  $$('[data-public-review-book]').forEach(btn => {
+    btn.onclick = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openDetail(btn.dataset.publicReviewBook);
     };
   });
 }
@@ -337,6 +367,7 @@ async function loadPublicReviews() {
     meta.textContent = `${total.toLocaleString('ms-MY')} ulasan${state.reviewQuery ? ` · carian “${state.reviewQuery}”` : ''}`;
     list.innerHTML = rows.length ? rows.map(publicReviewCard).join('') : '<div class="empty">Belum ada ulasan yang sepadan.</div>';
     bindReviewExpanders();
+    bindReviewBookTitles();
   } catch (error) {
     console.error(error);
     meta.textContent = 'Tak dapat load Ulasan Buku sekarang.';

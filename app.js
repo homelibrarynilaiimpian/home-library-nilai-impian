@@ -529,7 +529,7 @@ function renderReadingHub() {
         <div class="book-title">${esc(r.book?.title || 'Buku')}</div>
         <div class="review-book-meta">${esc(authors)}${r.book?.publication_year ? ` · ${esc(r.book.publication_year)}` : ''}</div>
         <div class="review-byline"><strong>${esc(r.reviewer?.display_name || 'Family member')}</strong>${r.rating ? `<span class="stars">${ratingStars(r.rating)}</span>` : ''}<span class="reading-badge ${esc(r.reading_status)}">${esc(readingStatusLabel(r.reading_status))}</span></div>
-        ${r.review_text ? `<div class="review-snippet review-snippet-clamp">${esc(r.review_text)}</div>` : '<div class="review-snippet muted">Tiada ulasan bertulis.</div>'}
+        ${r.review_text ? `<div class="review-snippet review-snippet-clamp review-preserve-lines">${esc(r.review_text)}</div>` : '<div class="review-snippet muted">Tiada ulasan bertulis.</div>'}
       </div>
       <span class="chev">›</span>
     </button>`;
@@ -635,7 +635,7 @@ async function loadBookReviews(bookId) {
   const otherHTML = rows.length ? rows.map(r => `<article class="review-card ${r.user_id === state.user.id ? 'my-review' : ''}">
     <div class="review-card-head"><strong>${esc(r.reviewer?.display_name || 'Family member')}</strong><span class="reading-badge ${esc(r.reading_status)}">${esc(readingStatusLabel(r.reading_status))}</span></div>
     ${r.rating ? `<div class="stars">${ratingStars(r.rating)}</div>` : ''}
-    ${r.review_text ? `<p>${esc(r.review_text)}</p>` : '<p class="muted">Tiada ulasan ditulis.</p>'}
+    ${r.review_text ? `<p class="review-preserve-lines">${esc(r.review_text)}</p>` : '<p class="muted">Tiada ulasan ditulis.</p>'}
     <small>${r.finished_at ? `Selesai ${esc(prettyDate(r.finished_at))}` : r.started_at ? `Mula ${esc(prettyDate(r.started_at))}` : `Update ${esc(prettyDate(r.updated_at))}`}</small>
   </article>`).join('') : '<div class="empty compact">Belum ada sesiapa rekod bacaan untuk buku ini.</div>';
 
@@ -656,6 +656,9 @@ async function loadBookReviews(bookId) {
   form.elements.started_at.value = mine?.started_at || '';
   form.elements.finished_at.value = mine?.finished_at || '';
   form.elements.review_text.value = mine?.review_text || '';
+  form.elements.review_text.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.isComposing) event.stopPropagation();
+  });
   form.addEventListener('submit', e => saveMyReview(e, bookId));
   $('#delete-my-review')?.addEventListener('click', () => deleteMyReview(bookId));
 }
@@ -677,13 +680,14 @@ async function saveMyReview(e, bookId) {
     };
     const { error } = await supabase.from('book_reviews').upsert(payload, { onConflict: 'book_id,user_id' });
     if (error) throw error;
-    toast('Rekod bacaan berjaya disimpan.');
-    await Promise.all([loadBookReviews(bookId), loadReadingDashboard()]);
+    $('#book-dialog')?.close();
+    await Promise.all([loadDashboard(), loadReadingHub(), loadCatalogue()]);
+    toast('Ulasan berjaya disimpan.');
   } catch (err) {
     console.error(err);
     toast(err?.message || 'Tak dapat simpan rekod bacaan.', true);
   } finally {
-    btn.disabled = false; btn.textContent = 'Simpan Bacaan';
+    btn.disabled = false; btn.textContent = 'Simpan Rekod';
   }
 }
 
@@ -1009,7 +1013,7 @@ async function saveEdit(e) {
     await applyBookClassification(book_id, f);
 
     $('#edit-dialog').close();
-    toast('Rekod dikemaskini.');
+    toast('Maklumat buku berjaya dikemaskini.');
     await Promise.all([loadCategories(), loadDashboard(), loadCatalogue(), loadActivity(), loadReadingHub()]);
   } catch (err) {
     console.error(err);

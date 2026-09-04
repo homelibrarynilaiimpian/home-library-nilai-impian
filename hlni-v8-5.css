@@ -445,3 +445,46 @@ body:not(.public-body){
   #recent-reading-list .reading-feed-row{grid-template-columns:44px minmax(0,1fr) auto}
   #recent-reading-list .reading-cover{width:44px;height:59px}
 }
+
+/* -------------------------------------------------------------------------- */
+/* V8.6 — info popup + review interaction                                     */
+/* -------------------------------------------------------------------------- */
+.review-preserve-lines{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+.public-review-book-title{
+  display:block;
+  width:fit-content;
+  max-width:100%;
+  margin:0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#173f34;
+  text-align:left;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:1.06rem;
+  line-height:1.25;
+  font-weight:700;
+  cursor:pointer;
+  border-radius:5px;
+  -webkit-tap-highlight-color:rgba(31,59,50,.08);
+}
+
+.public-review-book-title:hover{
+  color:#214b3f;
+  text-decoration:underline;
+  text-decoration-color:rgba(184,145,69,.55);
+  text-underline-offset:3px;
+}
+
+.public-review-book-title:focus-visible{
+  outline:2px solid rgba(184,145,69,.72);
+  outline-offset:4px;
+}
+
+.public-six-info-grid .detail-item strong{
+  overflow-wrap:anywhere;
+}
