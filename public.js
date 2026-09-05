@@ -252,7 +252,7 @@ async function openDetail(id) {
   if (!dialog.open) dialog.showModal();
 
   try {
-    const { data, error } = await supabase.rpc('public_book_detail_v86', { p_book_id: id });
+    const { data, error } = await supabase.rpc('public_book_detail_v861', { p_book_id: id });
     if (error) throw error;
     const book = data?.[0] || data || null;
     if (!book?.id) throw new Error('Rekod buku tidak dijumpai.');
@@ -275,6 +275,10 @@ async function openDetail(id) {
       <div class="detail-item"><span>Call No.</span><strong>${esc(book.call_no || '—')}</strong></div>
       <div class="detail-item"><span>Harga</span><strong>${esc(money(book.purchase_price))}</strong></div>
     </div>
+    ${book.description ? `<section class="public-synopsis-section">
+      <p class="eyebrow">SINOPSIS</p>
+      <div class="book-description review-preserve-lines">${esc(book.description)}</div>
+    </section>` : ''}
     <section class="public-review-section">
       <div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan Keluarga</h3></div>
       <div id="public-family-reviews"><div class="empty compact">Memuatkan ulasan…</div></div>
@@ -282,7 +286,7 @@ async function openDetail(id) {
     loadPublicBookReviews(id);
   } catch (error) {
     console.error(error);
-    detail.innerHTML = `<div class="empty compact">${esc(setupPending(error) ? 'Info buku V8.6 belum diaktifkan. Run SQL V8.6 sekali, kemudian refresh.' : (error?.message || 'Info buku tak dapat dimuatkan sekarang.'))}</div>`;
+    detail.innerHTML = `<div class="empty compact">${esc(setupPending(error) ? 'Info buku V8.6.1 belum diaktifkan. Run SQL V8.6.1 sekali, kemudian refresh.' : (error?.message || 'Info buku tak dapat dimuatkan sekarang.'))}</div>`;
   }
 }
 
