@@ -4,244 +4,140 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#1f3b32">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="HL Nilai Impian">
-  <title>Home Library Nilai Impian</title>
-  <meta name="description" content="Koleksi Peribadi Zamri & Nor Azzah">
+  <title>Katalog Awam · Home Library Nilai Impian</title>
+  <meta name="description" content="Katalog awam Koleksi Peribadi Zamri & Nor Azzah">
   <link rel="manifest" href="./manifest.webmanifest?v=9.0.0">
   <link rel="icon" href="./assets/favicon-v9.ico?v=9.0.0" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32-v9.png?v=9.0.0">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180-v9.png?v=9.0.0">
   <link rel="stylesheet" href="./styles.css?v=6.2.0">
-  <link rel="stylesheet" href="./final-v8.css?v=8.0.0">
+  <link rel="stylesheet" href="./final-v8.css?v=8.0.1">
   <link rel="stylesheet" href="./hlni-v8-5.css?v=8.6.0">
+
+  <style>
+    /* V8.6.2 — Public synopsis spacing */
+    .public-synopsis-section {
+      margin-top: 22px;
+    }
+
+    .public-synopsis-section .eyebrow {
+      margin-bottom: 12px;
+    }
+  </style>
 </head>
-<body>
-  <div id="toast" class="toast" aria-live="polite"></div>
-
-  <section id="auth-screen" class="auth-screen">
-    <div class="auth-card">
-      <div class="brand-mark"><img src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian"></div>
-      <p class="eyebrow">HOME LIBRARY NILAI IMPIAN</p>
-      <h1>Koleksi Peribadi<br>Zamri &amp; Nor Azzah</h1>
-      <p class="muted auth-copy">Katalog keluarga untuk menyimpan, mencari, membaca dan mengurus koleksi buku di rumah.</p>
-      <form id="login-form" class="form-stack">
-        <label><span>Email</span><input id="login-email" type="email" autocomplete="email" required placeholder="nama@email.com"></label>
-        <label><span>Password</span><input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
-        <button class="btn btn-primary" type="submit">Log Masuk</button>
-        <button id="forgot-password-btn" class="link-btn" type="button">Lupa password?</button>
-      </form>
-      <form id="forgot-form" class="form-stack hidden">
-        <div><p class="eyebrow">RESET PASSWORD</p><h3>Lupa Password</h3><p class="muted tiny">Masukkan email family yang telah didaftarkan. Link reset akan dihantar melalui email.</p></div>
-        <label><span>Email</span><input id="forgot-email" type="email" autocomplete="email" required placeholder="nama@email.com"></label>
-        <button class="btn btn-primary" type="submit">Hantar Link Reset</button>
-        <button id="back-login-btn" class="link-btn" type="button">Kembali ke login</button>
-      </form>
-      <form id="reset-password-form" class="form-stack hidden">
-        <div><p class="eyebrow">NEW PASSWORD</p><h3>Tetapkan Password Baru</h3></div>
-        <label><span>Password Baru</span><input id="new-password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimum 8 aksara"></label>
-        <label><span>Ulang Password</span><input id="confirm-password" type="password" minlength="8" autocomplete="new-password" required placeholder="Ulang password"></label>
-        <button class="btn btn-primary" type="submit">Simpan Password Baru</button>
-      </form>
-      <a class="public-entry" href="./public.html"><span>👁</span><span><strong>Lihat Katalog Awam</strong><small>Visitor boleh browse koleksi tanpa login</small></span><span>›</span></a>
-      <p class="tiny muted">Akses pengurusan hanya untuk ahli keluarga yang telah diluluskan.</p>
-    </div>
-  </section>
-
-  <div id="app-shell" class="app-shell hidden">
-    <header class="topbar family-topbar">
-      <div class="topbar-brand family-topbar-brand">
-        <img class="topbar-logo" src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian">
-        <div class="family-header-copy">
+<body class="public-body public-v8">
+  <div class="public-shell public-shell-v8">
+    <header class="public-header public-header-v8">
+      <div class="public-brand public-brand-v8">
+        <img class="public-logo" src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian">
+        <div>
           <h1>Home Library Nilai Impian</h1>
           <p>Koleksi Peribadi Zamri &amp; Nor Azzah</p>
-          <span id="page-title" class="family-route-title" aria-live="polite">Home</span>
         </div>
       </div>
-      <button id="profile-chip" class="profile-chip" type="button" data-nav="profile" aria-label="Buka profil keluarga"><span id="profile-initial">H</span></button>
+      <a class="public-login public-login-v8" href="./family.html" aria-label="Log Masuk Keluarga">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8c0-3.1 3.1-5.5 7-5.5s7 2.4 7 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>Log Masuk Keluarga</span>
+      </a>
     </header>
 
-    <main class="main-content">
-      <section id="view-home" class="view">
-        <div class="hero-card family-home-hero">
-          <div>
-            <p class="eyebrow light">KOLEKSI KELUARGA</p>
-            <h1>Home Library Nilai Impian</h1>
-            <p>Ruang keluarga untuk mengurus koleksi dan rekod bacaan bersama.</p>
-          </div>
-        </div>
-        <div class="stats-grid stats-grid-four">
-          <article class="stat-card"><span class="stat-label">Judul</span><strong id="stat-titles">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Sedang Dibaca</span><strong id="stat-copies">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Selesai Dibaca</span><strong id="stat-available">—</strong></article>
-          <article class="stat-card"><span class="stat-label">Karya Keluarga</span><strong id="stat-read">—</strong></article>
-        </div>
-
-        <div class="section-heading"><div><p class="eyebrow">AKTIVITI KELUARGA</p><h3>Bacaan Terkini</h3></div><button class="text-btn" data-nav="reading">Lihat semua</button></div>
-        <div id="recent-reading-list" class="reading-feed"></div>
-
-        <div class="section-heading"><div><p class="eyebrow">KOLEKSI KELUARGA</p><h3>Baru Ditambah</h3></div><button class="text-btn" data-nav="catalogue">Lihat semua</button></div>
-        <div id="latest-list" class="book-list"></div>
-      </section>
-
-      <section id="view-catalogue" class="view hidden">
-        <div class="search-wrap"><input id="catalogue-search" type="search" placeholder="Cari tajuk, penulis, ISBN, kategori…" autocomplete="off"></div>
-        <div class="catalogue-controls">
-          <div class="filter-row">
-            <button class="pill active" data-filter="ALL">Semua</button><button class="pill" data-filter="AVAILABLE">Tersedia</button><button class="pill" data-filter="BORROWED">Dipinjam</button><button class="pill" data-filter="MISSING">Hilang</button>
-          </div>
-          <select id="category-filter" class="category-filter" aria-label="Pilih kategori"><option value="ALL">Semua kategori</option></select>
-        </div>
-        <div id="catalogue-meta" class="catalogue-meta muted"></div>
-        <div id="catalogue-list" class="book-list"></div>
-      </section>
-
-
-      <section id="view-reading" class="view hidden">
-        <div class="section-heading standalone compact-section-heading">
-          <div><p class="eyebrow">ULASAN BUKU</p><h3>Ulasan Buku</h3></div>
-        </div>
-        <div class="reading-toolbar panel compact-review-toolbar">
-          <div class="review-search-sort-row">
-            <input id="reading-search" type="search" placeholder="Cari tajuk, penulis atau pengulas…" autocomplete="off">
-            <select id="reading-sort" class="review-date-sort" aria-label="Susun ulasan mengikut tarikh habis baca">
-              <option value="FINISHED_DESC">Tarikh Habis Baca — Terbaru</option>
-              <option value="FINISHED_ASC">Tarikh Habis Baca — Terlama</option>
-            </select>
-          </div>
-          <div class="filter-row star-filter-row compact-star-filters" aria-label="Tapis ikut rating">
-            <button class="pill active" data-review-rating="ALL" type="button">Semua</button>
-            <button class="pill star-filter" data-review-rating="5" type="button">5★</button>
-            <button class="pill star-filter" data-review-rating="4" type="button">4★</button>
-            <button class="pill star-filter" data-review-rating="3" type="button">3★</button>
-            <button class="pill star-filter" data-review-rating="2" type="button">2★</button>
-            <button class="pill star-filter" data-review-rating="1" type="button">1★</button>
-          </div>
-        </div>
-        <div id="reading-hub-meta" class="catalogue-meta muted"></div>
-        <div id="reading-hub-list" class="reading-hub-list"></div>
-      </section>
-
-      <section id="view-add" class="view hidden">
-        <div class="section-heading standalone"><div><p class="eyebrow">ROUND 2</p><h3>Tambah Buku</h3><p class="muted">Scan barcode ISBN atau taip ISBN untuk auto isi metadata. Semua maklumat masih boleh diedit sebelum simpan.</p></div></div>
-
-        <div class="scanner-panel panel">
-          <div class="scanner-head"><div><p class="eyebrow">ISBN / BARCODE</p><h3>Scan & Cari Buku</h3></div><span class="scanner-badge">AUTO</span></div>
-          <div class="isbn-action-row">
-            <input id="quick-isbn" inputmode="numeric" autocomplete="off" placeholder="978…">
-            <button id="lookup-isbn-btn" class="btn btn-secondary" type="button">Cari ISBN</button>
-            <button id="scan-isbn-btn" class="btn btn-primary" type="button">Scan Barcode</button>
-          </div>
-          <div id="isbn-reader" class="isbn-reader hidden"></div>
-          <div id="metadata-status" class="metadata-status muted tiny">Metadata akan digabungkan daripada beberapa sumber. Call No. tidak diisi automatik.</div>
-          <a id="isbnsearch-fallback" class="btn btn-secondary btn-link hidden" target="_blank" rel="noopener">Buka rekod di ISBNsearch.org</a>
-        </div>
-
-        <form id="add-book-form" class="panel form-stack two-col">
-          <label class="full"><span>Judul *</span><input name="title" required placeholder="Contoh: Seni Bahasa Badan"></label>
-          <label class="full"><span>Penulis *</span><input name="authors" required placeholder="Contoh: Penulis A; Penulis B"><small class="muted">Jika lebih seorang penulis, pisahkan nama dengan tanda semicolon <strong>;</strong></small></label>
-          <label><span>ISBN 13</span><input id="add-isbn13" name="isbn13" inputmode="numeric" placeholder="978…"></label>
-          <label><span>Tahun Terbit</span><input name="year" type="number" min="1000" max="2100" placeholder="2026"></label>
-          <label class="full"><span>Penerbit</span><input name="publisher" placeholder="Nama penerbit"></label>
-          <label><span>Bahasa</span><input name="language" placeholder="Malay / English"></label>
-          <label class="full family-work-toggle"><input name="family_work" type="checkbox"><span><strong>Karya Keluarga</strong><small class="muted">Tandakan jika buku ini hasil tulisan ahli keluarga. Tag ini tidak mengubah kategori LCC buku.</small></span></label>
-          <label class="full category-control"><span>Kategori</span><select name="category_mode"><option value="AUTO">Auto ikut Call No. (Disyorkan)</option></select><small id="add-category-preview" class="muted">Isi Call No. secara manual untuk detect kategori. Jika tiada / tak pasti, dropdown tetap tunjuk Lain-lain tetapi rekod ditanda Belum Disemak secara dalaman.</small></label>
-          <label id="add-other-category-wrap" class="full hidden"><span>Subjek / Keterangan Lain-lain</span><input name="category_note" placeholder="Contoh: Adventure stories, Malay fiction"><small class="muted">Ini disimpan sebagai remark/keterangan sahaja, bukan kategori baru.</small></label>
-          <label><span>No. Siri / Accession</span><input name="accession" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="000044"><small class="muted">Format 6 digit. Contoh: 44 akan jadi 000044.</small></label>
-          <label><span>Call No.</span><input name="callno" placeholder="Isi manual berdasarkan pengelasan perpustakaan"><small class="muted">Call No. baru tidak dijana automatik.</small></label>
-          <label class="full"><span>Rak</span><input name="shelf" placeholder="Contoh A-03"></label>
-          <label><span>Tarikh Beli</span><input name="acquisition_date" type="date"></label>
-          <label><span>Harga Beli (RM)</span><input name="purchase_price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
-          <label class="full"><span>Dibeli Dari</span><input name="purchased_from" placeholder="Kinokuniya / Popular / dll."></label>
-          <div class="full cover-picker">
-            <div id="add-cover-preview" class="cover-upload-preview"><div class="cover-placeholder">HLNI</div></div>
-            <div class="cover-picker-fields">
-              <strong>Cover Buku</strong>
-              <p class="tiny muted">Auto daripada metadata jika ada. Boleh upload/ambil gambar, atau tampal URL gambar terus.</p>
-              <input name="cover_file" type="file" accept="image/*">
-              <label class="cover-url-field"><span>URL Cover (optional)</span><input name="cover_url" type="url" placeholder="https://…"></label>
-            </div>
-          </div>
-          <label class="full"><span>Sinopsis / Description</span><textarea name="description" rows="4" placeholder="Auto diisi jika metadata tersedia"></textarea></label>
-          <label class="full"><span>Nota Naskhah</span><textarea name="notes" rows="3" placeholder="Apa-apa catatan tentang naskhah ini"></textarea></label>
-          <div class="full action-row"><button class="btn btn-primary" type="submit">Simpan Buku</button><button class="btn btn-secondary" type="reset">Kosongkan</button></div>
-        </form>
-      </section>
-
-      <section id="view-activity" class="view hidden">
-        <div class="section-heading standalone"><div><p class="eyebrow">AUDIT TRAIL</p><h3>Aktiviti Keluarga</h3><p class="muted">Siapa ubah apa, dan bila.</p></div></div>
-        <div id="activity-list" class="activity-list"></div>
-      </section>
-
-      <section id="view-archive" class="view hidden">
-        <div class="section-heading standalone"><div><p class="eyebrow">ARCHIVE &amp; TRASH</p><h3>Arkib</h3><p class="muted">Restore naskhah atau padam secara kekal. Permanent delete tidak boleh dibatalkan.</p></div></div>
-        <button class="btn btn-secondary archive-back" type="button" data-nav="profile">← Kembali ke Profile</button>
-        <div id="archive-list" class="archive-list"></div>
-      </section>
-
-      <section id="view-profile" class="view hidden">
-        <div class="panel form-stack">
-          <div><p class="eyebrow">ACCOUNT</p><h3>Profile</h3></div>
-          <label><span>Nama Paparan</span><input id="profile-name" placeholder="Nama"></label>
-          <label><span>Email</span><input id="profile-email" disabled></label>
-          <button id="save-profile" class="btn btn-primary" type="button">Simpan Nama</button>
-          <a class="btn btn-secondary btn-link" href="./public.html" target="_blank" rel="noopener">Buka Katalog Awam</a>
-          <button class="btn btn-secondary" type="button" data-nav="activity">Aktiviti Keluarga</button>
-          <button class="btn btn-secondary" type="button" data-nav="archive">Archive &amp; Trash</button>
-          <hr>
-          <button id="logout-btn" class="btn btn-danger" type="button">Log Keluar</button>
-        </div>
-      </section>
-    </main>
-
-    <nav class="bottom-nav">
-      <button class="nav-btn active" data-nav="home"><span class="nav-icon">⌂</span><span>Home</span></button>
-      <button class="nav-btn" data-nav="catalogue"><span class="nav-icon">▤</span><span>Katalog</span></button>
-      <button class="nav-btn add-nav" data-nav="add"><span class="nav-plus">＋</span><span>Tambah</span></button>
-      <button class="nav-btn" data-nav="reading"><span class="nav-icon">★</span><span>Ulasan</span></button>
-      <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profil</span></button>
-    </nav>
-  </div>
-
-  <dialog id="book-dialog" class="book-dialog"><div class="dialog-head"><button id="close-dialog" class="icon-btn">×</button></div><div id="book-detail"></div></dialog>
-
-  <dialog id="edit-dialog" class="book-dialog edit-dialog">
-    <div class="dialog-head"><strong>Edit Rekod</strong><button id="close-edit-dialog" class="icon-btn">×</button></div>
-    <form id="edit-book-form" class="form-stack two-col dialog-form">
-      <input type="hidden" name="book_id"><input type="hidden" name="copy_id"><input type="hidden" name="copy_source">
-      <label class="full"><span>Judul</span><input name="title" required></label>
-      <label class="full"><span>Penulis</span><input name="authors" required placeholder="Contoh: Penulis A; Penulis B"><small class="muted">Jika lebih seorang penulis, pisahkan nama dengan tanda semicolon <strong>;</strong></small></label>
-      <label><span>Tahun Terbit</span><input name="year" type="number" min="1000" max="2100"></label><label><span>ISBN 13</span><input name="isbn13"></label>
-      <label class="full"><span>Penerbit</span><input name="publisher"></label>
-      <label class="full family-work-toggle"><input name="family_work" type="checkbox"><span><strong>Karya Keluarga</strong><small class="muted">Tag khas untuk paparan awam. Buku tetap kekal dalam kategori LCC biasa.</small></span></label>
-      <label class="full category-control"><span>Kategori</span><select name="category_mode"><option value="AUTO">Auto ikut Call No. (Disyorkan)</option></select><small id="edit-category-preview" class="muted"></small><small id="edit-classification-status" class="classification-info"></small></label>
-      <label id="edit-other-category-wrap" class="full hidden"><span>Subjek / Keterangan Lain-lain</span><input name="category_note" placeholder="Keterangan ringkas jika perlu"><small class="muted">Tidak mencipta kategori baru.</small></label>
-      <label><span>No. Siri / Accession</span><input name="accession" inputmode="numeric" placeholder="000044"><small class="muted">Rekod baru guna 6 digit. Rekod Access lama dikekalkan seperti asal.</small></label>
-      <label><span>Status</span><select name="status"><option value="AVAILABLE">AVAILABLE</option><option value="BORROWED">BORROWED</option><option value="MISSING">MISSING</option><option value="REPAIR">REPAIR</option></select></label>
-      <label class="full"><span>Rak</span><input name="shelf"></label>
-      <label><span>Tarikh Beli</span><input name="acquisition_date" type="date"></label><label><span>Harga Beli (RM)</span><input name="purchase_price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
-      <label class="full"><span>Dibeli Dari</span><input name="purchased_from"></label>
-      <label class="full"><span>Call No.</span><input name="callno"><small class="muted">Call No. Access lama dikekalkan. Jika buku baru, isi secara manual.</small></label>
-      <div class="full cover-picker">
-        <div id="edit-cover-preview" class="cover-upload-preview"><div class="cover-placeholder">HLNI</div></div>
-        <div class="cover-picker-fields">
-          <strong>Cover Buku</strong>
-          <p class="tiny muted">Cover sedia ada dikekalkan. Boleh upload gambar baru atau tampal URL gambar.</p>
-          <input name="cover_file" type="file" accept="image/*">
-          <label class="cover-url-field"><span>URL Cover (optional)</span><input name="cover_url" type="url" placeholder="https://…"></label>
+    <section class="public-hero public-hero-v8" aria-labelledby="public-hero-title">
+      <div class="public-hero-copy-v8">
+        <p class="public-hero-eyebrow">KATALOG AWAM</p>
+        <h1 id="public-hero-title">Jelajah Koleksi</h1>
+        <h2>Home Library Nilai Impian</h2>
+        <p class="public-hero-body">Terokai koleksi peribadi Zamri &amp; Nor Azzah di Home Library Nilai Impian serta baca rating dan ulasan buku yang dikongsikan oleh keluarga kami, sebagai inspirasi bacaan anda sekeluarga.</p>
+        <div class="public-hero-actions">
+          <button id="public-cta-browse" class="public-cta public-cta-primary" type="button">Jelajah Koleksi <span aria-hidden="true">→</span></button>
         </div>
       </div>
-      <label class="full"><span>Sinopsis / Description</span><textarea name="description" rows="4"></textarea></label>
-      <label class="full"><span>Nota Naskhah</span><textarea name="notes" rows="3"></textarea></label>
-      <div class="full action-row"><button class="btn btn-primary" type="submit">Simpan Perubahan</button><button id="archive-copy" class="btn btn-danger" type="button">Archive Naskhah</button></div>
-    </form>
+      <div class="public-hero-atmosphere" aria-hidden="true"></div>
+    </section>
+
+    <section class="public-stats public-stats-v8" aria-label="Ringkasan koleksi">
+      <article class="stat-card public-stat-card"><span class="stat-label">Judul</span><strong id="public-stat-titles">—</strong></article>
+      <article class="stat-card public-stat-card"><span class="stat-label">Kategori</span><strong id="public-stat-categories">—</strong></article>
+      <article class="stat-card public-stat-card"><span class="stat-label">Selesai Dibaca</span><strong id="public-stat-reads">—</strong></article>
+      <article class="stat-card public-stat-card"><span class="stat-label">Karya Keluarga</span><strong id="public-stat-family-works">—</strong></article>
+    </section>
+
+    <nav id="public-section-nav" class="public-section-nav public-section-nav-v8" aria-label="Menu awam">
+      <button class="public-section-btn active" data-public-view="catalogue" type="button">Katalog</button>
+      <button class="public-section-btn" data-public-view="reviews" type="button">Ulasan Buku</button>
+      <button class="public-section-btn" data-public-view="familyworks" type="button">Karya Keluarga</button>
+    </nav>
+
+    <section id="public-view-catalogue" class="public-content-section">
+      <div class="public-search-panel public-search-panel-v8">
+        <input id="public-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis atau penerbit…">
+        <div class="public-filter-grid">
+          <select id="public-category" aria-label="Pilih kategori"><option value="">Semua kategori</option></select>
+          <select id="public-sort" aria-label="Susun mengikut">
+            <option value="TITLE_ASC">Tajuk A–Z</option>
+            <option value="TITLE_DESC">Tajuk Z–A</option>
+            <option value="NEWEST">Terbaru Ditambah</option>
+          </select>
+        </div>
+      </div>
+      <p class="public-note" id="public-meta">Memuatkan katalog…</p>
+      <div id="public-grid" class="public-grid"></div>
+      <div class="public-load-more"><button id="public-load-more" class="btn btn-secondary hidden" type="button">Muat Lagi</button></div>
+    </section>
+
+    <section id="public-view-reviews" class="public-content-section hidden">
+      <div class="public-section-heading compact-public-heading">
+        <h2>Ulasan Buku</h2>
+      </div>
+      <div class="public-reading-toolbar public-review-toolbar-v8">
+        <div class="review-search-sort-row public-review-search-sort-row">
+          <input id="public-reading-search" type="search" autocomplete="off" placeholder="Cari tajuk, penulis atau pengulas…">
+          <select id="public-reading-sort" class="review-date-sort" aria-label="Susun ulasan mengikut tarikh habis baca">
+            <option value="FINISHED_DESC">Tarikh Habis Baca — Terbaru</option>
+            <option value="FINISHED_ASC">Tarikh Habis Baca — Terlama</option>
+          </select>
+        </div>
+        <div class="filter-row star-filter-row compact-star-filters" aria-label="Tapis ulasan ikut rating">
+          <button class="pill active" data-public-review-rating="" type="button">Semua</button>
+          <button class="pill star-filter" data-public-review-rating="5" type="button">5★</button>
+          <button class="pill star-filter" data-public-review-rating="4" type="button">4★</button>
+          <button class="pill star-filter" data-public-review-rating="3" type="button">3★</button>
+          <button class="pill star-filter" data-public-review-rating="2" type="button">2★</button>
+          <button class="pill star-filter" data-public-review-rating="1" type="button">1★</button>
+        </div>
+      </div>
+      <p class="public-note" id="public-reading-meta">Memuatkan ulasan…</p>
+      <div id="public-reading-list" class="public-reading-list"></div>
+    </section>
+
+    <section id="public-view-familyworks" class="public-content-section hidden">
+      <div class="public-section-heading compact-public-heading">
+        <h2>Karya Keluarga</h2>
+      </div>
+      <p class="public-note" id="public-familyworks-meta">Memuatkan karya keluarga…</p>
+      <div id="public-familyworks-grid" class="public-grid"></div>
+    </section>
+
+    <footer class="public-social-footer" aria-label="Media sosial Home Library Nilai Impian">
+      <p class="eyebrow">IKUTI KAMI</p>
+      <div class="public-social-links">
+        <a href="https://facebook.com/homelibrarynilaiimpian" target="_blank" rel="noopener noreferrer" aria-label="Facebook Home Library Nilai Impian, buka di tab baharu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.6 1.6-1.6h1.7V3.8c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2h-2.8v3h2.8v8h3.4Z" fill="currentColor"/></svg>
+          <span>Home Library Nilai Impian</span>
+        </a>
+        <a href="https://facebook.com/littlefreelibrarynilaiimpian" target="_blank" rel="noopener noreferrer" aria-label="Facebook Little Free Library Nilai Impian, buka di tab baharu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.6 1.6-1.6h1.7V3.8c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2h-2.8v3h2.8v8h3.4Z" fill="currentColor"/></svg>
+          <span>Little Free Library Nilai Impian</span>
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <dialog id="public-book-dialog" class="public-dialog">
+    <div class="dialog-head"><button id="public-close-dialog" class="icon-btn" type="button">×</button></div>
+    <div id="public-book-detail" class="public-detail"></div>
   </dialog>
 
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script type="module" src="./app.js?v=8.6.0"></script>
+  <script type="module" src="./public.js?v=8.6.0"></script>
   <script type="module" src="./hlni-v8-3.js?v=8.5.0"></script>
-  <script type="module" src="./hlni-v8-6-3-duplicates.js?v=8.6.7"></script>
-  <script type="module" src="./hlni-v8-6-4-backup.js?v=8.6.4"></script>
-  <script type="module" src="./hlni-v8-6-5-recovery.js?v=8.6.5"></script>
 </body>
 </html>
