@@ -127,7 +127,7 @@
 
     <div class="info">
       <strong>Cara guna</strong><br>
-      Drag untuk pusing peta · pinch/scroll untuk zoom · tap Rak atau Bay untuk pilih.<br><br>
+      Drag untuk pusing peta · pinch dua jari / scroll mouse untuk zoom · tap Rak atau Bay untuk pilih.<br><br>
       Jika buku belum mempunyai Rak/Bay, visitor masih boleh membuka peta ini sebagai navigasi umum.
     </div>
     <a class="back-link" href="./public.html">← Kembali ke Katalog Awam</a>
@@ -135,7 +135,7 @@
 
   <main class="viewer">
     <canvas id="scene" aria-label="Peta 3D Home Library Nilai Impian"></canvas>
-    <div class="hint">Drag: pusing · Scroll/Pinch: zoom · Tap: pilih</div>
+    <div class="hint">Drag: pusing · Pinch/Scroll: zoom · Tap: pilih</div>
     <div id="loading" class="loading">Memuatkan Peta 3D HLNI…</div>
   </main>
 </div>
@@ -203,10 +203,25 @@ viewer.appendChild(labelRenderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.07;
-controls.minDistance = 2.2;
-controls.maxDistance = 16;
+
+// Manual navigation: mouse wheel / trackpad + two-finger pinch zoom.
+controls.enableZoom = true;
+controls.zoomSpeed = 1.0;
+controls.minDistance = 0.55;
+controls.maxDistance = 20;
+controls.screenSpacePanning = true;
+controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+controls.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+controls.touches.ONE = THREE.TOUCH.ROTATE;
+controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 controls.maxPolarAngle = Math.PI * 0.49;
 controls.target.set(0, 1.0, 0);
+
+// If the visitor starts controlling the camera, stop the auto-focus animation immediately.
+controls.addEventListener('start', () => {
+  cameraTween = null;
+});
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x726c62, 2.1));
 const sun = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -471,24 +486,74 @@ function tweenCamera(toPos,toTarget,duration=650) {
   };
 }
 
+function rackFrontDirection(obj, p) {
+  // Face every rack square-on from the room side instead of approaching it diagonally.
+  // A rack that runs along X is viewed along Z; a rack that runs along Z is viewed along X.
+  if (obj.def.width >= obj.def.depth) {
+    const sign = Math.abs(p.z) > 0.001 ? Math.sign(-p.z) : 1;
+    return new THREE.Vector3(0, 0, sign);
+  }
+  const sign = Math.abs(p.x) > 0.001 ? Math.sign(-p.x) : 1;
+  return new THREE.Vector3(sign, 0, 0);
+}
+
+function distanceToFitFrame(frameWidth, frameHeight, margin=1.2) {
+  // Fit the requested Rack/Bay fully inside the CURRENT viewport.
+  // This automatically adapts to phone portrait/landscape and desktop.
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(camera.aspect, 0.1));
+  const distV = (frameHeight / 2) / Math.tan(vFov / 2);
+  const distH = (frameWidth / 2) / Math.tan(hFov / 2);
+  return Math.max(distV, distH) * margin;
+}
+
 function focusRack(rackNo, bayNo=null) {
   const obj = rackObjects.get(Number(rackNo));
   if (!obj) return;
+
   const p = new THREE.Vector3();
   obj.group.getWorldPosition(p);
-  const center = new THREE.Vector3(0,0,0);
-  const inward = center.clone().sub(new THREE.Vector3(p.x,0,p.z));
-  if (inward.lengthSq() < 0.01) inward.set(0,0,1);
-  inward.normalize();
-  const dist = Math.max(2.0, Math.max(obj.def.width,obj.def.depth)*2.2);
-  const targetY = bayNo
-    ? obj.def.height - (Number(bayNo)-0.5)*(obj.def.height/obj.def.bays)
-    : obj.def.height*0.55;
-  const target = new THREE.Vector3(p.x,targetY,p.z);
-  const pos = target.clone().add(inward.multiplyScalar(dist));
-  // Keep the camera at the exact vertical centre of the selected Bay so it is eye-level.
+
+  const front = rackFrontDirection(obj, p);
+  const rackSpan = Math.max(obj.def.width, obj.def.depth);
+
+  let targetY;
+  let frameHeight;
+  let frameWidth;
+  let margin;
+  let minAutoDistance;
+
+  if (bayNo) {
+    const bayHeight = obj.def.height / obj.def.bays;
+
+    // Bay 1 = top. Target is exactly at the physical centre of that Bay.
+    targetY = obj.def.height - (Number(bayNo) - 0.5) * bayHeight;
+
+    // Frame the WHOLE Bay: full rack width + full Bay height.
+    frameWidth = rackSpan;
+    frameHeight = bayHeight;
+    margin = 1.28;
+    minAutoDistance = 0.85;
+  } else {
+    // Rack view: centre on the whole physical rack and fit top-to-bottom.
+    targetY = obj.def.height / 2;
+    frameWidth = rackSpan;
+    frameHeight = obj.def.height;
+    margin = 1.18;
+    minAutoDistance = 2.4;
+  }
+
+  let dist = distanceToFitFrame(frameWidth, frameHeight, margin);
+  dist = THREE.MathUtils.clamp(dist, minAutoDistance, 9.0);
+
+  const target = new THREE.Vector3(p.x, targetY, p.z);
+  const pos = target.clone().add(front.multiplyScalar(dist));
+
+  // Camera and target are at the SAME height:
+  // no top-down angle; the selected Rack/Bay is exactly eye-level.
   pos.y = targetY;
-  tweenCamera(pos,target,700);
+
+  tweenCamera(pos, target, 700);
 }
 
 function generalView() {
@@ -528,17 +593,65 @@ resetBtn.addEventListener('click',generalView);
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+
+const activePointers = new Set();
+let tapStart = null;
+let tapMoved = false;
+let multiPointerGesture = false;
+
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  activePointers.add(event.pointerId);
+
+  if (activePointers.size > 1) {
+    multiPointerGesture = true;
+    tapMoved = true;
+  } else {
+    tapStart = { id:event.pointerId, x:event.clientX, y:event.clientY };
+    tapMoved = false;
+  }
+}, { passive:true });
+
+renderer.domElement.addEventListener('pointermove', (event) => {
+  if (!tapStart || tapStart.id !== event.pointerId) return;
+  if (Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) > 8) {
+    tapMoved = true;
+  }
+}, { passive:true });
+
+renderer.domElement.addEventListener('pointercancel', (event) => {
+  activePointers.delete(event.pointerId);
+  if (!activePointers.size) {
+    tapStart = null;
+    tapMoved = false;
+    multiPointerGesture = false;
+  }
+}, { passive:true });
+
 renderer.domElement.addEventListener('pointerup',(event)=>{
-  if (event.button !== 0) return;
-  const rect = renderer.domElement.getBoundingClientRect();
-  pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
-  pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
-  raycaster.setFromCamera(pointer,camera);
-  const hits=raycaster.intersectObjects(pickables,false);
-  if (!hits.length) return;
-  const data=hits[0].object.userData;
-  if (data.kind==='bay') selectLocation(data.rack,data.bay,true);
-  else if (data.kind==='rack') selectLocation(data.rack,null,true);
+  const wasTap = event.button === 0 && !tapMoved && !multiPointerGesture &&
+    tapStart && tapStart.id === event.pointerId;
+
+  activePointers.delete(event.pointerId);
+
+  if (wasTap) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+    pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+    raycaster.setFromCamera(pointer,camera);
+    const hits=raycaster.intersectObjects(pickables,false);
+
+    if (hits.length) {
+      const data=hits[0].object.userData;
+      if (data.kind==='bay') selectLocation(data.rack,data.bay,true);
+      else if (data.kind==='rack') selectLocation(data.rack,null,true);
+    }
+  }
+
+  if (!activePointers.size) {
+    tapStart = null;
+    tapMoved = false;
+    multiPointerGesture = false;
+  }
 });
 
 function resize() {
