@@ -81,6 +81,25 @@ function installStyles() {
       color:#7b837f;
       font-weight:600;
     }
+    .hlni-family-map-nav{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:100%;
+      min-height:48px;
+      margin-top:14px;
+      margin-bottom:14px;
+      border-color:#1f3b32 !important;
+      color:#1f3b32 !important;
+      background:#f8f5ed !important;
+      font-weight:800;
+      text-decoration:none;
+    }
+    .hlni-family-map-nav:hover,
+    .hlni-family-map-nav:focus-visible{
+      background:#1f3b32 !important;
+      color:#fff !important;
+    }
     @media(max-width:560px){
       .${LOCATION_CLASS}{grid-template-columns:1fr}
       .${LOCATION_CLASS} .hlni-location-head,.hlni-location-preview{grid-column:1}
@@ -391,7 +410,7 @@ function setFamilyDetailLocation(rackNo, bayNo) {
   const items = [...detail.querySelectorAll('.detail-item')];
   const item = items.find(el => {
     const label = el.querySelector('span');
-    return label && label.textContent.trim().toLowerCase() === 'rak';
+    return label && ['rak', 'rak / bay'].includes(label.textContent.trim().toLowerCase());
   });
 
   if (!item) return false;
@@ -402,13 +421,42 @@ function setFamilyDetailLocation(rackNo, bayNo) {
 
   label.textContent = 'Rak / Bay';
 
-  if (rackNo && bayNo) {
+  const complete = Boolean(rackNo && bayNo);
+  if (complete) {
     value.textContent = `Rak ${rackNo} • Bay ${bayNo}`;
   } else if (rackNo) {
     value.textContent = `Rak ${rackNo} • Bay —`;
   } else {
     value.textContent = '—';
   }
+
+  let nav = detail.querySelector('.hlni-family-map-nav');
+  if (!nav) {
+    nav = document.createElement('a');
+    nav.className = 'btn btn-secondary hlni-family-map-nav';
+    nav.target = '_blank';
+    nav.rel = 'noopener';
+
+    const actions = detail.querySelector('.detail-actions');
+    if (actions) {
+      actions.insertAdjacentElement('beforebegin', nav);
+    } else {
+      const grid = detail.querySelector('.detail-grid');
+      grid?.insertAdjacentElement('afterend', nav);
+    }
+  }
+
+  nav.href = complete
+    ? `./map3d.html?rack=${encodeURIComponent(rackNo)}&bay=${encodeURIComponent(bayNo)}&from=family`
+    : './map3d.html?from=family';
+
+  nav.textContent = complete
+    ? '🧭 LIHAT LOKASI 3D'
+    : '🗺️ LIHAT PETA 3D HLNI';
+
+  nav.setAttribute('aria-label', complete
+    ? `Lihat lokasi Rak ${rackNo} Bay ${bayNo} dalam peta 3D`
+    : 'Lihat peta 3D Home Library Nilai Impian');
 
   return true;
 }

@@ -130,7 +130,7 @@
       Drag untuk pusing peta · pinch dua jari / scroll mouse untuk zoom · tap Rak atau Bay untuk pilih.<br><br>
       Jika buku belum mempunyai Rak/Bay, visitor masih boleh membuka peta ini sebagai navigasi umum.
     </div>
-    <a class="back-link" href="./public.html">← Kembali ke Katalog Awam</a>
+    <a id="mapBackLink" class="back-link" href="./public.html">← Kembali ke Katalog Awam</a>
   </aside>
 
   <main class="viewer">
@@ -681,6 +681,13 @@ function animate(now) {
 requestAnimationFrame(animate);
 
 await loadRackData();
+
+const pageParams = new URLSearchParams(location.search);
+const mapBackLink = document.querySelector('#mapBackLink');
+if (pageParams.get('from') === 'family' && mapBackLink) {
+  mapBackLink.href = './family.html';
+  mapBackLink.textContent = '← Kembali ke Katalog Keluarga';
+}
 
 const params=new URLSearchParams(location.search);
 const initialRack=Number(params.get('rack'));
