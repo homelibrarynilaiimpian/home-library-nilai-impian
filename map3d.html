@@ -486,7 +486,8 @@ function focusRack(rackNo, bayNo=null) {
     : obj.def.height*0.55;
   const target = new THREE.Vector3(p.x,targetY,p.z);
   const pos = target.clone().add(inward.multiplyScalar(dist));
-  pos.y = Math.max(targetY+0.55,1.7);
+  // Keep the camera at the exact vertical centre of the selected Bay so it is eye-level.
+  pos.y = targetY;
   tweenCamera(pos,target,700);
 }
 
