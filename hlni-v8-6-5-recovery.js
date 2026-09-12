@@ -246,3 +246,203 @@ if (document.readyState === 'loading') {
 } else {
   boot();
 }
+
+// -----------------------------------------------------------------------------
+// HLNI Cover Optimizer v1.0.0
+// Appended to the existing recovery module so family.html DOES NOT need editing.
+// Compresses FUTURE manual cover uploads before the existing app.js upload flow.
+// Existing DB, existing covers, public.html and app.js are untouched.
+// -----------------------------------------------------------------------------
+
+(() => {
+  const TARGET_BYTES = 450 * 1024; // target <= 450 KB
+  const MAX_WIDTH = 1200;
+  const MAX_HEIGHT = 1800;
+
+  function canvasBlob(canvas, type, quality) {
+    return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+  }
+
+  async function exportOptimizedCanvas(canvas, quality) {
+    let blob = await canvasBlob(canvas, 'image/webp', quality);
+
+    // Fallback for browsers that cannot export WebP.
+    if (!blob || blob.type !== 'image/webp') {
+      blob = await canvasBlob(canvas, 'image/jpeg', quality);
+    }
+
+    if (!blob) throw new Error('Cover tak dapat diproses.');
+    return blob;
+  }
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => resolve({ img, objectUrl });
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Fail cover tak dapat dibaca.'));
+      };
+
+      img.src = objectUrl;
+    });
+  }
+
+  async function optimizeCover(file) {
+    const { img, objectUrl } = await loadImage(file);
+
+    try {
+      const originalWidth = img.naturalWidth;
+      const originalHeight = img.naturalHeight;
+
+      if (!originalWidth || !originalHeight) {
+        throw new Error('Resolusi cover tidak sah.');
+      }
+
+      // If already web-friendly, keep the exact original file.
+      if (
+        file.size <= TARGET_BYTES &&
+        originalWidth <= MAX_WIDTH &&
+        originalHeight <= MAX_HEIGHT
+      ) {
+        return file;
+      }
+
+      let scale = Math.min(
+        1,
+        MAX_WIDTH / originalWidth,
+        MAX_HEIGHT / originalHeight
+      );
+
+      let width = Math.max(1, Math.round(originalWidth * scale));
+      let height = Math.max(1, Math.round(originalHeight * scale));
+      let bestBlob = null;
+
+      for (let resizeAttempt = 0; resizeAttempt < 4; resizeAttempt++) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) throw new Error('Browser tak dapat proses cover.');
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        for (const quality of [0.84, 0.78, 0.72, 0.66]) {
+          const candidate = await exportOptimizedCanvas(canvas, quality);
+
+          if (!bestBlob || candidate.size < bestBlob.size) {
+            bestBlob = candidate;
+          }
+
+          if (candidate.size <= TARGET_BYTES) {
+            bestBlob = candidate;
+            break;
+          }
+        }
+
+        if (bestBlob && bestBlob.size <= TARGET_BYTES) break;
+
+        // Still too large: reduce dimensions another 15% and retry.
+        width = Math.max(480, Math.round(width * 0.85));
+        height = Math.max(720, Math.round(height * 0.85));
+      }
+
+      if (!bestBlob) return file;
+
+      const ext = bestBlob.type === 'image/webp' ? 'webp' : 'jpg';
+      const stem = (file.name || 'cover')
+        .replace(/\.[^.]+$/, '')
+        .replace(/[^a-zA-Z0-9._-]+/g, '-')
+        .slice(0, 80) || 'cover';
+
+      return new File(
+        [bestBlob],
+        `${stem}-optimized.${ext}`,
+        { type: bestBlob.type, lastModified: Date.now() }
+      );
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
+  function setSubmitDisabled(input, disabled) {
+    const form = input.form;
+    if (!form) return;
+
+    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(btn => {
+      if (disabled) {
+        if (!btn.dataset.hlniOptimizerLock) {
+          btn.dataset.hlniOptimizerWasDisabled = btn.disabled ? '1' : '0';
+        }
+        btn.dataset.hlniOptimizerLock = '1';
+        btn.disabled = true;
+      } else if (btn.dataset.hlniOptimizerLock) {
+        if (btn.dataset.hlniOptimizerWasDisabled !== '1') btn.disabled = false;
+        delete btn.dataset.hlniOptimizerLock;
+        delete btn.dataset.hlniOptimizerWasDisabled;
+      }
+    });
+  }
+
+  async function handleCoverInput(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    // Leave validation to the existing app.js for unsupported/oversized files.
+    if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) return;
+    if (file.size > 5 * 1024 * 1024) return;
+
+    // DataTransfer is needed to replace the selected File safely.
+    // If unavailable, fail open: existing app.js continues working unchanged.
+    if (typeof DataTransfer === 'undefined') {
+      console.warn('[HLNI Cover Optimizer] DataTransfer unavailable; using original file.');
+      return;
+    }
+
+    setSubmitDisabled(input, true);
+    input.dataset.hlniOptimizing = '1';
+
+    try {
+      const originalBytes = file.size;
+      const optimized = await optimizeCover(file);
+
+      if (optimized !== file && optimized.size < file.size) {
+        const dt = new DataTransfer();
+        dt.items.add(optimized);
+        input.files = dt.files;
+
+        console.info('[HLNI Cover Optimizer]', {
+          originalKB: Math.round(originalBytes / 1024),
+          finalKB: Math.round(optimized.size / 1024),
+          savedPercent: Math.round((1 - optimized.size / originalBytes) * 100),
+          format: optimized.type
+        });
+      } else {
+        console.info('[HLNI Cover Optimizer] Original cover already web-friendly.');
+      }
+    } catch (error) {
+      // Never break the current upload flow before judging.
+      console.error('[HLNI Cover Optimizer] Compression failed; original file retained.', error);
+    } finally {
+      delete input.dataset.hlniOptimizing;
+      setSubmitDisabled(input, false);
+    }
+  }
+
+  document.addEventListener('change', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.type !== 'file' || input.name !== 'cover_file') return;
+
+    handleCoverInput(input);
+  }, true);
+
+  console.info('[HLNI Cover Optimizer] v1.0.0 ready');
+})();
