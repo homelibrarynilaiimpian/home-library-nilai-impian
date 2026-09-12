@@ -374,3 +374,85 @@ if (document.readyState === 'loading') {
 } else {
   boot();
 }
+
+// -----------------------------------------------------------------------------
+// HLNI Family Detail Location Patch v1.1
+// The legacy family detail card still reads copies.shelf.
+// Physical location now lives in copies.rack_no + copies.bay_no.
+// This layer updates ONLY the family book-detail modal display.
+// -----------------------------------------------------------------------------
+
+let familyDetailLocationToken = 0;
+
+function setFamilyDetailLocation(rackNo, bayNo) {
+  const detail = document.querySelector('#book-detail');
+  if (!detail) return false;
+
+  const items = [...detail.querySelectorAll('.detail-item')];
+  const item = items.find(el => {
+    const label = el.querySelector('span');
+    return label && label.textContent.trim().toLowerCase() === 'rak';
+  });
+
+  if (!item) return false;
+
+  const label = item.querySelector('span');
+  const value = item.querySelector('strong');
+  if (!label || !value) return false;
+
+  label.textContent = 'Rak / Bay';
+
+  if (rackNo && bayNo) {
+    value.textContent = `Rak ${rackNo} • Bay ${bayNo}`;
+  } else if (rackNo) {
+    value.textContent = `Rak ${rackNo} • Bay —`;
+  } else {
+    value.textContent = '—';
+  }
+
+  return true;
+}
+
+async function patchFamilyDetailLocation(bookId) {
+  const token = ++familyDetailLocationToken;
+
+  try {
+    const { data, error } = await supabase
+      .from('copies')
+      .select('id,rack_no,bay_no,created_at')
+      .eq('book_id', bookId)
+      .is('archived_at', null)
+      .order('created_at', { ascending: true, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (token !== familyDetailLocationToken) return;
+
+    const rackNo = data?.rack_no ? Number(data.rack_no) : null;
+    const bayNo = data?.bay_no ? Number(data.bay_no) : null;
+
+    // app.js renders the modal synchronously, but allow a few short retries
+    // in case another UI layer finishes immediately after the click.
+    let tries = 0;
+    const apply = () => {
+      if (token !== familyDetailLocationToken) return;
+      if (setFamilyDetailLocation(rackNo, bayNo)) return;
+      if (++tries < 12) setTimeout(apply, 40);
+    };
+    apply();
+  } catch (error) {
+    console.error('[HLNI Location] family detail display', error);
+  }
+}
+
+document.addEventListener('click', event => {
+  const trigger = event.target.closest?.('[data-book]');
+  const bookId = trigger?.dataset?.book;
+  if (!bookId) return;
+
+  // Do not interfere with app.js click handling. Just patch the rendered
+  // detail value after the normal modal opens.
+  patchFamilyDetailLocation(bookId);
+}, false);
+
