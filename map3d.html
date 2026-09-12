@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1f3b32">
+  <title>Peta 3D HLNI · Home Library Nilai Impian</title>
+  <style>
+    :root{
+      --green:#1f3b32;
+      --green-2:#2c5548;
+      --cream:#f5f0e6;
+      --paper:#fffdf8;
+      --ink:#17211d;
+      --muted:#66736d;
+      --line:#d8d4ca;
+      --gold:#c9a86a;
+      --danger:#b44b4b;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--cream);color:var(--ink)}
+    body{min-height:100vh}
+    .shell{display:grid;grid-template-columns:minmax(280px,360px) 1fr;min-height:100vh}
+    .panel{padding:22px;background:rgba(255,253,248,.97);border-right:1px solid var(--line);z-index:3}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+    .brand-mark{width:42px;height:42px;border-radius:12px;background:var(--green);display:grid;place-items:center;color:white;font-weight:800;letter-spacing:.04em}
+    .brand h1{font-size:18px;margin:0;line-height:1.15}
+    .brand p{font-size:12px;margin:3px 0 0;color:var(--muted)}
+    .eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--green);margin:0 0 7px;text-transform:uppercase}
+    h2{font-size:26px;line-height:1.1;margin:0 0 8px}
+    .muted{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+    .controls{display:grid;gap:12px;margin-top:18px}
+    label{display:grid;gap:6px;font-size:12px;font-weight:700}
+    select,button,a.action{
+      min-height:44px;border-radius:12px;border:1px solid var(--line);background:white;color:var(--ink);
+      padding:10px 12px;font:inherit
+    }
+    select{font-size:16px}
+    button{cursor:pointer;font-weight:750}
+    .primary{background:var(--green);color:white;border-color:var(--green)}
+    .secondary{background:#fff}
+    .action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .status{margin-top:18px;padding:14px;border-radius:14px;background:#eef3f0;border:1px solid #d5e2dc}
+    .status strong{display:block;font-size:16px;margin-bottom:4px}
+    .bay-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}
+    .bay-chip{min-height:38px;padding:7px 5px;border-radius:10px;font-size:12px;background:white}
+    .bay-chip.active{background:var(--gold);border-color:var(--gold);color:#231b0e}
+    .info{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.55}
+    .back-link{display:inline-flex;margin-top:16px;color:var(--green);font-size:13px;font-weight:750;text-decoration:none}
+    .viewer{position:relative;min-width:0;overflow:hidden;background:linear-gradient(180deg,#e9eee9 0%,#f6f2e9 100%)}
+    #scene{width:100%;height:100vh;min-height:620px;display:block;touch-action:none}
+    .hint{
+      position:absolute;left:16px;bottom:16px;z-index:2;padding:9px 12px;border-radius:999px;
+      background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.08);font-size:12px;color:#43504a
+    }
+    .rack-label,.bay-label{
+      padding:4px 7px;border-radius:7px;background:rgba(255,255,255,.95);border:1px solid rgba(0,0,0,.14);
+      font-size:11px;font-weight:800;white-space:nowrap;pointer-events:none
+    }
+    .rack-label.selected{background:var(--green);color:white;border-color:var(--green)}
+    .bay-label{font-size:10px;background:rgba(255,253,248,.96)}
+    .bay-label.active{background:var(--gold);color:#231b0e;border-color:var(--gold)}
+    .loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(245,240,230,.78);z-index:4;font-weight:700;color:var(--green)}
+    .loading.hidden{display:none}
+    @media(max-width:800px){
+      .shell{grid-template-columns:1fr;grid-template-rows:auto minmax(520px,1fr)}
+      .panel{border-right:0;border-bottom:1px solid var(--line);padding:16px}
+      .brand{margin-bottom:12px}
+      h2{font-size:22px}
+      .controls{grid-template-columns:1fr 1fr;gap:9px}
+      .controls .full{grid-column:1/-1}
+      .action-row{grid-column:1/-1}
+      .status{margin-top:12px}
+      .bay-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+      #scene{height:66vh;min-height:520px}
+      .info{display:none}
+    }
+    @media(max-width:430px){
+      .controls{grid-template-columns:1fr}
+      .controls .full,.action-row{grid-column:auto}
+      .bay-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .panel{padding:14px}
+      #scene{height:60vh;min-height:470px}
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+<div class="shell">
+  <aside class="panel">
+    <div class="brand">
+      <div class="brand-mark">HL</div>
+      <div><h1>Home Library Nilai Impian</h1><p>Peta Lokasi 3D</p></div>
+    </div>
+
+    <p class="eyebrow">NAVIGASI PERPUSTAKAAN</p>
+    <h2>Cari Rak & Bay</h2>
+    <p class="muted">Pilih Rak untuk fokus. Pilih Bay untuk highlight lokasi buku. Bay 1 bermula dari paling atas.</p>
+
+    <div class="controls">
+      <label>
+        <span>Rak</span>
+        <select id="rackSelect" aria-label="Pilih Rak"><option value="">Semua Rak</option></select>
+      </label>
+      <label>
+        <span>Bay</span>
+        <select id="baySelect" aria-label="Pilih Bay" disabled><option value="">Semua Bay</option></select>
+      </label>
+      <div class="action-row">
+        <button id="focusBtn" class="primary" type="button">Fokus Lokasi</button>
+        <button id="resetBtn" class="secondary" type="button">Paparan Umum</button>
+      </div>
+    </div>
+
+    <div class="status" aria-live="polite">
+      <strong id="statusTitle">Peta 3D HLNI</strong>
+      <span id="statusText" class="muted">Pilih mana-mana Rak pada peta atau menu.</span>
+      <div id="bayList" class="bay-list" hidden></div>
+    </div>
+
+    <div class="info">
+      <strong>Cara guna</strong><br>
+      Drag untuk pusing peta · pinch/scroll untuk zoom · tap Rak atau Bay untuk pilih.<br><br>
+      Jika buku belum mempunyai Rak/Bay, visitor masih boleh membuka peta ini sebagai navigasi umum.
+    </div>
+    <a class="back-link" href="./public.html">← Kembali ke Katalog Awam</a>
+  </aside>
+
+  <main class="viewer">
+    <canvas id="scene" aria-label="Peta 3D Home Library Nilai Impian"></canvas>
+    <div class="hint">Drag: pusing · Scroll/Pinch: zoom · Tap: pilih</div>
+    <div id="loading" class="loading">Memuatkan Peta 3D HLNI…</div>
+  </main>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://hpkzlioltmzyoalnqhgz.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_57JvYsgIIi1LDnMYkew7XA_mOrQaZu2';
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
+
+// Geometry is derived from the accepted HLNI IFC plan.
+// X/Z = floor plan position in metres. Y = vertical height.
+const RACK_GEOMETRY = [
+  { rack:1,  x:-0.691, z:-1.088, width:0.835, depth:0.190, height:2.36, bays:7 },
+  { rack:2,  x: 0.121, z:-1.088, width:0.811, depth:0.190, height:2.36, bays:7 },
+  { rack:3,  x: 0.910, z:-1.093, width:0.831, depth:0.200, height:2.36, bays:7 },
+  { rack:4,  x: 1.712, z:-1.088, width:0.835, depth:0.190, height:2.36, bays:7 },
+  { rack:5,  x: 2.369, z:-1.088, width:0.479, depth:0.190, height:2.36, bays:7 },
+  { rack:6,  x: 2.704, z:-0.691, width:0.190, depth:0.612, height:2.36, bays:7 },
+  { rack:7,  x: 2.704, z: 2.184, width:0.190, depth:1.081, height:2.36, bays:7 },
+  { rack:8,  x:-0.415, z: 2.465, width:0.911, depth:0.190, height:2.36, bays:8 },
+  { rack:9,  x:-2.349, z: 2.465, width:0.900, depth:0.190, height:2.36, bays:7 },
+  { rack:10, x:-2.544, z: 1.889, width:0.190, depth:1.001, height:2.36, bays:7 },
+  { rack:11, x:-2.544, z: 0.096, width:0.190, depth:0.835, height:2.36, bays:9 },
+  { rack:12, x:-2.544, z:-0.708, width:0.190, depth:0.826, height:2.36, bays:8 },
+  { rack:13, x:-2.549, z:-1.506, width:0.200, depth:0.831, height:2.36, bays:7 },
+  { rack:14, x:-2.544, z:-2.308, width:0.190, depth:0.835, height:2.36, bays:7 },
+  { rack:15, x:-0.565, z:-1.625, width:1.081, depth:0.190, height:2.36, bays:7 }
+];
+
+const fallbackRackData = RACK_GEOMETRY.map(r => ({
+  rack_no:r.rack,
+  rack_name:`Rak ${r.rack}`,
+  bay_count:r.bays,
+  bays:Array.from({length:r.bays},(_,i)=>({bay_no:i+1,bay_name:`Bay ${i+1}`}))
+}));
+
+const canvas = document.querySelector('#scene');
+const viewer = canvas.parentElement;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf3f0e8);
+scene.fog = new THREE.Fog(0xf3f0e8, 10, 20);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 50);
+camera.position.set(7.2, 7.0, 7.2);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.inset = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+viewer.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.minDistance = 2.2;
+controls.maxDistance = 16;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.target.set(0, 1.0, 0);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x726c62, 2.1));
+const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+sun.position.set(4, 8, 5);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+scene.add(sun);
+
+const floor = new THREE.Mesh(
+  new THREE.BoxGeometry(6.7, 0.08, 6.2),
+  new THREE.MeshStandardMaterial({ color:0xe7dfd1, roughness:0.88 })
+);
+floor.position.set(0, -0.05, 0);
+floor.receiveShadow = true;
+scene.add(floor);
+
+const floorInset = new THREE.Mesh(
+  new THREE.PlaneGeometry(3.6, 3.0),
+  new THREE.MeshStandardMaterial({ color:0xd6c7a8, roughness:1, side:THREE.DoubleSide })
+);
+floorInset.rotation.x = -Math.PI/2;
+floorInset.position.set(0.15, 0.002, 0.45);
+scene.add(floorInset);
+
+const rackRoot = new THREE.Group();
+scene.add(rackRoot);
+
+const rackObjects = new Map();
+const pickables = [];
+const baseWood = new THREE.Color(0x45372f);
+const bayNeutral = new THREE.Color(0x88786c);
+const accent = new THREE.Color(0x1f3b32);
+const bayAccent = new THREE.Color(0xc9a86a);
+
+function cssLabel(text, className) {
+  const el = document.createElement('div');
+  el.className = className;
+  el.textContent = text;
+  return new CSS2DObject(el);
+}
+
+function createRack(def) {
+  const group = new THREE.Group();
+  group.position.set(def.x, 0, def.z);
+  group.userData = { rack:def.rack };
+
+  const longX = def.width >= def.depth;
+  const span = longX ? def.width : def.depth;
+  const thickness = longX ? def.depth : def.width;
+  const bayHeight = def.height / def.bays;
+
+  const woodMat = new THREE.MeshStandardMaterial({ color:baseWood, roughness:0.66, metalness:0.02 });
+  const shelfMat = new THREE.MeshStandardMaterial({ color:0x5a463b, roughness:0.72 });
+  const backMat = new THREE.MeshStandardMaterial({ color:0x665248, roughness:0.86, transparent:true, opacity:0.38 });
+
+  // Back panel
+  const back = new THREE.Mesh(
+    new THREE.BoxGeometry(def.width, def.height, def.depth),
+    backMat
+  );
+  back.position.y = def.height/2;
+  back.castShadow = true;
+  back.receiveShadow = true;
+  group.add(back);
+
+  // Side posts
+  const postSize = 0.045;
+  if (longX) {
+    for (const sx of [-1,1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(postSize,def.height+0.04,Math.max(def.depth,0.12)),woodMat);
+      post.position.set(sx*(def.width/2-postSize/2), def.height/2, 0);
+      post.castShadow = true; group.add(post);
+    }
+  } else {
+    for (const sz of [-1,1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(Math.max(def.width,0.12),def.height+0.04,postSize),woodMat);
+      post.position.set(0,def.height/2,sz*(def.depth/2-postSize/2));
+      post.castShadow = true; group.add(post);
+    }
+  }
+
+  // Shelf boards + clickable bay volumes.
+  const bays = [];
+  for (let i=0; i<=def.bays; i++) {
+    const y = i*bayHeight;
+    const shelf = new THREE.Mesh(
+      new THREE.BoxGeometry(def.width + (longX?0.02:0), 0.026, def.depth + (!longX?0.02:0)),
+      shelfMat
+    );
+    shelf.position.y = y;
+    shelf.castShadow = true; shelf.receiveShadow = true;
+    group.add(shelf);
+  }
+
+  for (let i=0; i<def.bays; i++) {
+    const bayNo = i+1; // Bay 1 = top
+    const yCenter = def.height - (i+0.5)*bayHeight;
+    const mat = new THREE.MeshStandardMaterial({
+      color:bayNeutral, transparent:true, opacity:0.045, roughness:0.9,
+      emissive:0x000000, emissiveIntensity:0
+    });
+    const hit = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.max(def.width-0.05,0.09), Math.max(bayHeight-0.035,0.08), Math.max(def.depth-0.025,0.09)),
+      mat
+    );
+    hit.position.y = yCenter;
+    hit.userData = { kind:'bay', rack:def.rack, bay:bayNo };
+    group.add(hit);
+    pickables.push(hit);
+    bays.push(hit);
+
+    const bayLabel = cssLabel(`Bay ${bayNo}`, 'bay-label');
+    bayLabel.position.set(0, yCenter, longX ? -(def.depth/2+0.07) : -(def.depth/2+0.07));
+    bayLabel.visible = false;
+    group.add(bayLabel);
+    hit.userData.label = bayLabel;
+  }
+
+  // Rack top label
+  const label = cssLabel(`Rak ${def.rack}`, 'rack-label');
+  label.position.set(0, def.height + 0.20, 0);
+  group.add(label);
+
+  // Invisible whole-rack pick box
+  const rackHit = new THREE.Mesh(
+    new THREE.BoxGeometry(Math.max(def.width,0.14),def.height,Math.max(def.depth,0.14)),
+    new THREE.MeshBasicMaterial({ transparent:true,opacity:0,depthWrite:false })
+  );
+  rackHit.position.y = def.height/2;
+  rackHit.userData = { kind:'rack', rack:def.rack };
+  group.add(rackHit);
+  pickables.push(rackHit);
+
+  rackRoot.add(group);
+  rackObjects.set(def.rack,{ group, bays, rackHit, label, def });
+}
+
+RACK_GEOMETRY.forEach(createRack);
+
+const rackSelect = document.querySelector('#rackSelect');
+const baySelect = document.querySelector('#baySelect');
+const bayList = document.querySelector('#bayList');
+const statusTitle = document.querySelector('#statusTitle');
+const statusText = document.querySelector('#statusText');
+const focusBtn = document.querySelector('#focusBtn');
+const resetBtn = document.querySelector('#resetBtn');
+const loading = document.querySelector('#loading');
+
+let rackData = fallbackRackData;
+let selectedRack = null;
+let selectedBay = null;
+let cameraTween = null;
+
+function getRackData(no) {
+  return rackData.find(r => Number(r.rack_no) === Number(no));
+}
+
+async function loadRackData() {
+  try {
+    const { data, error } = await supabase.rpc('public_rack_navigation_v1');
+    if (error) throw error;
+    const byRack = new Map();
+    for (const row of data || []) {
+      if (!byRack.has(row.rack_no)) {
+        byRack.set(row.rack_no,{
+          rack_no:row.rack_no,
+          rack_name:row.rack_name,
+          bay_count:row.bay_count,
+          bays:[]
+        });
+      }
+      byRack.get(row.rack_no).bays.push({ bay_no:row.bay_no, bay_name:row.bay_name });
+    }
+    if (byRack.size) rackData = [...byRack.values()].sort((a,b)=>a.rack_no-b.rack_no);
+  } catch (err) {
+    console.warn('HLNI rack metadata fallback in use:',err);
+  }
+  populateRackSelect();
+}
+
+function populateRackSelect() {
+  rackSelect.innerHTML = '<option value="">Semua Rak</option>' +
+    rackData.map(r=>`<option value="${r.rack_no}">${r.rack_name}</option>`).join('');
+}
+
+function populateBaySelect(rackNo, chosen=null) {
+  const info = getRackData(rackNo);
+  baySelect.innerHTML = '<option value="">Semua Bay</option>';
+  if (!info) {
+    baySelect.disabled = true;
+    return;
+  }
+  baySelect.innerHTML += info.bays.map(b=>`<option value="${b.bay_no}">${b.bay_name}</option>`).join('');
+  baySelect.disabled = false;
+  if (chosen && info.bays.some(b=>Number(b.bay_no)===Number(chosen))) baySelect.value=String(chosen);
+}
+
+function updateURL() {
+  const url = new URL(location.href);
+  if (selectedRack) url.searchParams.set('rack', selectedRack); else url.searchParams.delete('rack');
+  if (selectedRack && selectedBay) url.searchParams.set('bay', selectedBay); else url.searchParams.delete('bay');
+  history.replaceState({},'',url);
+}
+
+function setVisualSelection() {
+  for (const [rackNo,obj] of rackObjects) {
+    const rackSelected = rackNo === selectedRack;
+    obj.label.element.classList.toggle('selected',rackSelected);
+    obj.bays.forEach((bay,i)=>{
+      const active = rackSelected && Number(bay.userData.bay) === Number(selectedBay);
+      bay.material.opacity = active ? 0.72 : rackSelected ? 0.12 : 0.045;
+      bay.material.color.copy(active ? bayAccent : rackSelected ? accent : bayNeutral);
+      bay.material.emissive.copy(active ? bayAccent : new THREE.Color(0x000000));
+      bay.material.emissiveIntensity = active ? 0.35 : 0;
+      if (bay.userData.label) {
+        bay.userData.label.visible = rackSelected;
+        bay.userData.label.element.classList.toggle('active',active);
+      }
+    });
+  }
+}
+
+function renderBayList() {
+  if (!selectedRack) {
+    bayList.hidden = true;
+    bayList.innerHTML = '';
+    return;
+  }
+  const info = getRackData(selectedRack);
+  bayList.hidden = false;
+  bayList.innerHTML = (info?.bays || []).map(b=>
+    `<button type="button" class="bay-chip ${Number(b.bay_no)===Number(selectedBay)?'active':''}" data-bay="${b.bay_no}">${b.bay_name}</button>`
+  ).join('');
+  bayList.querySelectorAll('[data-bay]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      selectLocation(selectedRack,Number(btn.dataset.bay),true);
+    });
+  });
+}
+
+function updateStatus() {
+  if (!selectedRack) {
+    statusTitle.textContent = 'Peta 3D HLNI';
+    statusText.textContent = 'Semua 15 Rak dipaparkan. Pilih satu Rak untuk melihat Bay.';
+  } else if (!selectedBay) {
+    const info = getRackData(selectedRack);
+    statusTitle.textContent = `Rak ${selectedRack}`;
+    statusText.textContent = `${info?.bay_count || info?.bays?.length || ''} Bay · Bay 1 bermula dari atas.`;
+  } else {
+    statusTitle.textContent = `Rak ${selectedRack} · Bay ${selectedBay}`;
+    statusText.textContent = `Lokasi Bay ${selectedBay} sedang di-highlight.`;
+  }
+}
+
+function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+
+function tweenCamera(toPos,toTarget,duration=650) {
+  cameraTween = {
+    start:performance.now(),duration,
+    fromPos:camera.position.clone(),fromTarget:controls.target.clone(),
+    toPos:toPos.clone(),toTarget:toTarget.clone()
+  };
+}
+
+function focusRack(rackNo, bayNo=null) {
+  const obj = rackObjects.get(Number(rackNo));
+  if (!obj) return;
+  const p = new THREE.Vector3();
+  obj.group.getWorldPosition(p);
+  const center = new THREE.Vector3(0,0,0);
+  const inward = center.clone().sub(new THREE.Vector3(p.x,0,p.z));
+  if (inward.lengthSq() < 0.01) inward.set(0,0,1);
+  inward.normalize();
+  const dist = Math.max(2.0, Math.max(obj.def.width,obj.def.depth)*2.2);
+  const targetY = bayNo
+    ? obj.def.height - (Number(bayNo)-0.5)*(obj.def.height/obj.def.bays)
+    : obj.def.height*0.55;
+  const target = new THREE.Vector3(p.x,targetY,p.z);
+  const pos = target.clone().add(inward.multiplyScalar(dist));
+  pos.y = Math.max(targetY+0.55,1.7);
+  tweenCamera(pos,target,700);
+}
+
+function generalView() {
+  selectedRack = null; selectedBay = null;
+  rackSelect.value=''; baySelect.innerHTML='<option value="">Semua Bay</option>'; baySelect.disabled=true;
+  setVisualSelection(); renderBayList(); updateStatus(); updateURL();
+  tweenCamera(new THREE.Vector3(7.2,7.0,7.2),new THREE.Vector3(0,1.0,0),780);
+}
+
+function selectLocation(rackNo,bayNo=null,doFocus=false) {
+  rackNo = Number(rackNo);
+  const info = getRackData(rackNo);
+  if (!info || !rackObjects.has(rackNo)) return generalView();
+  selectedRack = rackNo;
+  selectedBay = bayNo && info.bays.some(b=>Number(b.bay_no)===Number(bayNo)) ? Number(bayNo) : null;
+  rackSelect.value=String(selectedRack);
+  populateBaySelect(selectedRack,selectedBay);
+  baySelect.value=selectedBay?String(selectedBay):'';
+  setVisualSelection(); renderBayList(); updateStatus(); updateURL();
+  if (doFocus) focusRack(selectedRack,selectedBay);
+}
+
+rackSelect.addEventListener('change',()=>{
+  const rack = Number(rackSelect.value);
+  if (!rack) return generalView();
+  selectLocation(rack,null,true);
+});
+baySelect.addEventListener('change',()=>{
+  if (!selectedRack) return;
+  const bay = Number(baySelect.value);
+  selectLocation(selectedRack,bay || null,true);
+});
+focusBtn.addEventListener('click',()=>{
+  if (selectedRack) focusRack(selectedRack,selectedBay); else generalView();
+});
+resetBtn.addEventListener('click',generalView);
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+renderer.domElement.addEventListener('pointerup',(event)=>{
+  if (event.button !== 0) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const hits=raycaster.intersectObjects(pickables,false);
+  if (!hits.length) return;
+  const data=hits[0].object.userData;
+  if (data.kind==='bay') selectLocation(data.rack,data.bay,true);
+  else if (data.kind==='rack') selectLocation(data.rack,null,true);
+});
+
+function resize() {
+  const w=viewer.clientWidth;
+  const h=Math.max(420,viewer.clientHeight);
+  renderer.setSize(w,h,false);
+  labelRenderer.setSize(w,h);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(viewer);
+resize();
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  if (cameraTween) {
+    const t=Math.min(1,(now-cameraTween.start)/cameraTween.duration);
+    const e=easeInOut(t);
+    camera.position.lerpVectors(cameraTween.fromPos,cameraTween.toPos,e);
+    controls.target.lerpVectors(cameraTween.fromTarget,cameraTween.toTarget,e);
+    if (t>=1) cameraTween=null;
+  }
+  controls.update();
+  renderer.render(scene,camera);
+  labelRenderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+
+await loadRackData();
+
+const params=new URLSearchParams(location.search);
+const initialRack=Number(params.get('rack'));
+const initialBay=Number(params.get('bay'));
+if (initialRack && rackObjects.has(initialRack)) {
+  selectLocation(initialRack,initialBay || null,true);
+} else {
+  generalView();
+}
+loading.classList.add('hidden');
+</script>
+</body>
+</html>
