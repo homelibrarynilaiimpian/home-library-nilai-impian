@@ -23,7 +23,7 @@
     .shell{display:grid;grid-template-columns:minmax(280px,360px) 1fr;min-height:100vh}
     .panel{padding:22px;background:rgba(255,253,248,.97);border-right:1px solid var(--line);z-index:3}
     .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-    .brand-mark{width:42px;height:42px;border-radius:12px;background:var(--green);display:grid;place-items:center;color:white;font-weight:800;letter-spacing:.04em}
+    .brand-mark{width:42px;height:42px;border-radius:12px;display:block;object-fit:cover;object-position:center;background:var(--green)}
     .brand h1{font-size:18px;margin:0;line-height:1.15}
     .brand p{font-size:12px;margin:3px 0 0;color:var(--muted)}
     .eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--green);margin:0 0 7px;text-transform:uppercase}
@@ -96,7 +96,7 @@
 <div class="shell">
   <aside class="panel">
     <div class="brand">
-      <div class="brand-mark">HL</div>
+      <img class="brand-mark" src="./assets/logo-main.jpeg?v=9.0.0" alt="Home Library Nilai Impian">
       <div><h1>Home Library Nilai Impian</h1><p>Peta Lokasi 3D</p></div>
     </div>
 
@@ -130,7 +130,7 @@
       Drag untuk pusing peta · pinch dua jari / scroll mouse untuk zoom · tap Rak atau Bay untuk pilih.<br><br>
       Jika buku belum mempunyai Rak/Bay, visitor masih boleh membuka peta ini sebagai navigasi umum.
     </div>
-    <a id="mapBackLink" class="back-link" href="./public.html">← Kembali ke Katalog Awam</a>
+    <a class="back-link" href="./public.html">← Kembali ke Katalog Awam</a>
   </aside>
 
   <main class="viewer">
@@ -681,13 +681,6 @@ function animate(now) {
 requestAnimationFrame(animate);
 
 await loadRackData();
-
-const pageParams = new URLSearchParams(location.search);
-const mapBackLink = document.querySelector('#mapBackLink');
-if (pageParams.get('from') === 'family' && mapBackLink) {
-  mapBackLink.href = './family.html';
-  mapBackLink.textContent = '← Kembali ke Katalog Keluarga';
-}
 
 const params=new URLSearchParams(location.search);
 const initialRack=Number(params.get('rack'));
