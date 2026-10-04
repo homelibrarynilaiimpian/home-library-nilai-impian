@@ -1,52 +1,48 @@
-HLNI PASSWORD RESET HOTFIX v1.0.0
+HLNI PASSWORD RESET HOTFIX v2.0.0
 ===================================
 
-Masalah:
-Link "Reset your password" Supabase berjaya verify, tetapi user kembali ke website
-tanpa sempat nampak borang "Tetapkan Password Baru".
+PUNCA SEBENAR YANG DIKESAN
+--------------------------
+Reset email memang berjaya dan Supabase verify link dengan status berjaya.
+Tetapi redirect selepas verify jatuh ke root website / Site URL, iaitu KATALOG AWAM.
 
-Punca:
-Supabase boleh consume/remove URL hash recovery sebelum app.js bootstrap sempat
-membaca `type=recovery`.
+Sebab itu hotfix v1 tak sempat jalan:
+v1 hanya berada di family.html, tetapi browser tak sampai ke family.html.
 
-Fail dalam ZIP:
-1. family.html
-   - Replacement untuk family.html semasa.
-   - Hanya perubahan penting: load hlni-auth-recovery-fix.js sebelum app.js.
+APA V2 BUAT
+-----------
+1. index.html dan public.html kini load `hlni-auth-recovery-router.js`
+   SEBELUM public.js.
+2. Jika URL yang sampai ke katalog awam mengandungi `type=recovery`
+   atau `type=invite`, ia terus dihantar ke family.html sambil mengekalkan
+   semua token/query/hash Supabase.
+3. family.html + hlni-auth-recovery-fix.js (v1) kemudian memaksa skrin
+   "Tetapkan Password Baru" kekal terbuka sehingga password berjaya disimpan.
 
-2. hlni-auth-recovery-fix.js
-   - Tangkap flow `recovery` / `invite` lebih awal.
-   - Paksa skrin "Tetapkan Password Baru" kekal visible sehingga update password berjaya.
-   - Tidak ubah database, RLS, catalogue atau fungsi lain.
+FAIL YANG PERLU UPLOAD KE ROOT REPO
+-----------------------------------
+Upload SEMUA fail ini:
+- index.html                         (overwrite)
+- public.html                        (overwrite)
+- family.html                        (overwrite / kekalkan versi patch)
+- hlni-auth-recovery-router.js       (NEW)
+- hlni-auth-recovery-fix.js          (kekalkan / overwrite versi patch)
 
-CARA PASANG DI GITHUB
----------------------
-1. Buka repo:
-   homelibrarynilaiimpian/home-library-nilai-impian
+Repo:
+homelibrarynilaiimpian/home-library-nilai-impian
 
-2. Upload DUA fail ini ke root repo:
-   - family.html  (overwrite fail lama)
-   - hlni-auth-recovery-fix.js  (fail baru)
+Selepas commit:
+1. Tunggu GitHub Pages deploy siap.
+2. Tutup tab website lama di telefon Mama.
+3. Buka Family Login semula.
+4. Tekan Lupa password.
+5. Minta email reset BARU.
+6. Buka email yang PALING BARU sahaja.
+7. Tekan Reset your password.
+8. Ia sepatutnya tidak lagi berhenti di Katalog Awam.
+9. Ia akan pergi ke Family page -> Tetapkan Password Baru.
+10. Simpan password baru.
 
-3. Commit ke branch main.
-
-4. Tunggu GitHub Pages deploy siap.
-
-CARA TEST
----------
-1. Buka Family Login.
-2. Tekan "Lupa password?".
-3. Masukkan email family.
-4. GUNA EMAIL RESET YANG PALING BARU.
-   Link lama yang sudah ditekan tidak boleh diguna semula kerana token Supabase one-time.
-5. Tekan "Reset your password".
-6. Sepatutnya keluar:
-      Tetapkan Password Baru
-      Password Baru
-      Ulang Password
-      Simpan Password Baru
-7. Simpan password baru.
-8. Selepas berjaya, app akan teruskan flow login biasa.
-
-Nota:
-Jika browser masih tunjuk versi lama, tutup tab dan buka semula website atau refresh.
+PENTING
+-------
+Jangan test guna email reset lama. Recovery link Supabase ialah one-time token.

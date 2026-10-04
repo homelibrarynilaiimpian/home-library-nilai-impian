@@ -2,15 +2,12 @@
  * Home Library Nilai Impian
  * Password Reset / Invite Recovery Hotfix v1.0.0
  *
- * Purpose:
- * Supabase may consume and remove the #...type=recovery hash before app.js
- * bootstrap checks location.hash. This hotfix captures the auth flow before
- * app.js runs, and keeps the "Tetapkan Password Baru" form visible until the
- * password update succeeds.
+ * Captures a Supabase recovery/invite flow before app.js bootstrap and keeps
+ * the "Tetapkan Password Baru" form visible until the password update succeeds.
  */
 (() => {
   const STORAGE_KEY = 'hlni-password-setup-pending-v1';
-  const MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
   function readAuthTypeFromUrl() {
     const rawHash = window.location.hash.startsWith('#')
@@ -60,7 +57,6 @@
 
   function forcePasswordSetupScreen() {
     if (completed) return;
-
     authScreen.classList.remove('hidden');
     appShell.classList.add('hidden');
     loginForm.classList.add('hidden');
@@ -75,11 +71,8 @@
     toastObserver?.disconnect();
   }
 
-  // Run immediately, before app.js module bootstrap.
   forcePasswordSetupScreen();
 
-  // If app.js bootstrap tries to show the normal app, put the user back on
-  // the password setup screen while the recovery flow is still pending.
   const uiObserver = new MutationObserver(() => {
     queueMicrotask(forcePasswordSetupScreen);
   });
@@ -91,16 +84,10 @@
     });
   });
 
-  resetForm.addEventListener(
-    'submit',
-    () => {
-      submitted = true;
-    },
-    true
-  );
+  resetForm.addEventListener('submit', () => {
+    submitted = true;
+  }, true);
 
-  // app.js already shows this success message after updateUser() succeeds.
-  // Clear the hotfix flag only then, so bootstrap can continue into the app.
   let toastObserver = null;
   if (toast) {
     toastObserver = new MutationObserver(() => {
@@ -117,6 +104,5 @@
     });
   }
 
-  // Optional escape hatch for a future app.js native fix.
   window.addEventListener('hlni:password-reset-complete', clearPending);
 })();

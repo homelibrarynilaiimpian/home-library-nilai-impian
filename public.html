@@ -6,6 +6,11 @@
   <meta name="theme-color" content="#1f3b32">
   <title>Katalog Awam · Home Library Nilai Impian</title>
   <meta name="description" content="Katalog awam Koleksi Peribadi Zamri & Nor Azzah">
+
+  <!-- v2.0.0: if Supabase recovery falls back to the public Site URL,
+       reroute it to family.html BEFORE public.js can consume the auth hash. -->
+  <script src="./hlni-auth-recovery-router.js?v=2.0.0"></script>
+
   <link rel="manifest" href="./manifest.webmanifest?v=9.0.0">
   <link rel="icon" href="./assets/favicon-v9.ico?v=9.0.0" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32-v9.png?v=9.0.0">
