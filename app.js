@@ -2,6 +2,55 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://hpkzlioltmzyoalnqhgz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_57JvYsgIIi1LDnMYkew7XA_mOrQaZu2';
+
+// Password recovery v2: capture the recovery/invite intent before Supabase
+// consumes the URL hash. This replaces the old MutationObserver hotfix.
+const PASSWORD_SETUP_KEY = 'hlni-password-setup-pending-v2';
+const PASSWORD_SETUP_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+const PASSWORD_RESET_REDIRECT = 'https://www.homelibrarynilaiimpian.com/family.html';
+
+function authFlowTypeFromUrl() {
+  const rawHash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
+  const hash = new URLSearchParams(rawHash);
+  const search = new URLSearchParams(location.search);
+  return hash.get('type') || search.get('type') || '';
+}
+
+function markPasswordSetup(type = 'recovery') {
+  try {
+    sessionStorage.setItem(PASSWORD_SETUP_KEY, JSON.stringify({ type, startedAt: Date.now() }));
+  } catch (_) {}
+}
+
+function readPasswordSetup() {
+  try {
+    const raw = sessionStorage.getItem(PASSWORD_SETUP_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    if (!value?.startedAt || Date.now() - value.startedAt > PASSWORD_SETUP_MAX_AGE_MS) {
+      sessionStorage.removeItem(PASSWORD_SETUP_KEY);
+      return null;
+    }
+    return value;
+  } catch (_) {
+    try { sessionStorage.removeItem(PASSWORD_SETUP_KEY); } catch (_) {}
+    return null;
+  }
+}
+
+function isPasswordSetupPending() {
+  return !!readPasswordSetup();
+}
+
+function clearPasswordSetup() {
+  try { sessionStorage.removeItem(PASSWORD_SETUP_KEY); } catch (_) {}
+}
+
+const initialAuthFlowType = authFlowTypeFromUrl();
+if (initialAuthFlowType === 'recovery' || initialAuthFlowType === 'invite') {
+  markPasswordSetup(initialAuthFlowType);
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
@@ -351,10 +400,14 @@ async function enterAppForUser(user) {
 }
 
 async function bootstrap() {
-  const passwordSetupRequested = location.hash.includes('type=recovery') || location.hash.includes('type=invite');
+  const passwordSetupRequested = isPasswordSetupPending() || location.hash.includes('type=recovery') || location.hash.includes('type=invite');
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) logAuthError('getSession', sessionError);
-  if (passwordSetupRequested && session) { state.user = session.user; showAuthReset(); return; }
+  if (passwordSetupRequested) {
+    state.user = session?.user || null;
+    showAuthReset();
+    return;
+  }
   if (!session) { showAuthLogin(); return; }
   try {
     const { data: userData, error: userError } = await runAuthRequest(() => supabase.auth.getUser(), { retries: 1 });
@@ -1423,7 +1476,7 @@ $('#forgot-form').addEventListener('submit', async e => {
   btn.disabled = true; btn.textContent = 'Menghantar…';
   try {
     const email = normalizeEmail($('#forgot-email').value);
-    const redirectTo = `${location.origin}${location.pathname}`;
+    const redirectTo = PASSWORD_RESET_REDIRECT;
     const { error } = await runAuthRequest(() => supabase.auth.resetPasswordForEmail(email, { redirectTo }), { retries: 0 });
     if (error) { logAuthError('resetPasswordForEmail', error); throw error; }
     toast('Link reset password telah dihantar. Semak email.');
@@ -1434,22 +1487,57 @@ $('#forgot-form').addEventListener('submit', async e => {
   } finally { btn.disabled = false; btn.textContent = 'Hantar Link Reset'; }
 });
 
+let passwordResetBusy = false;
 $('#reset-password-form').addEventListener('submit', async e => {
   e.preventDefault();
+  e.stopPropagation();
+  if (passwordResetBusy) return;
+
   const p1 = $('#new-password').value;
   const p2 = $('#confirm-password').value;
   if (p1 !== p2) { toast('Password tidak sama.', true); return; }
   if (p1.length < 8) { toast('Password perlu sekurang-kurangnya 8 aksara.', true); return; }
-  const btn = e.currentTarget.querySelector('button');
-  btn.disabled = true; btn.textContent = 'Menyimpan…';
+
+  const btn = e.currentTarget.querySelector('button[type="submit"]');
+  passwordResetBusy = true;
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan…';
+
   try {
-    const { error } = await runAuthRequest(() => supabase.auth.updateUser({ password: p1 }), { retries: 1 });
+    // A recovery link creates a temporary authenticated session. Confirm that
+    // session exists before attempting the password mutation.
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!sessionData?.session) {
+      throw new Error('Sesi reset password tidak dijumpai. Minta link reset yang baru dan buka link tersebut sekali lagi.');
+    }
+
+    const { data, error } = await runAuthRequest(
+      () => supabase.auth.updateUser({ password: p1 }),
+      { retries: 0 }
+    );
     if (error) { logAuthError('updateUser password', error); throw error; }
+    if (!data?.user) throw new Error('Password tidak dapat disahkan sebagai telah dikemaskini.');
+
+    clearPasswordSetup();
+    $('#new-password').value = '';
+    $('#confirm-password').value = '';
     history.replaceState(null, '', location.pathname);
-    toast('Password baru berjaya disimpan.');
-    await bootstrap();
-  } catch (err) { logAuthError('reset-password', err); toast(friendlyAuthError(err, 'login'), true); }
-  finally { btn.disabled = false; btn.textContent = 'Simpan Password Baru'; }
+
+    // End the temporary recovery session and require a clean login with the
+    // new password. This also avoids bootstrap/auth-state races on Safari/Chrome.
+    await supabase.auth.signOut({ scope: 'local' });
+    state.user = null;
+    showAuthLogin();
+    toast('Password baru berjaya disimpan. Sila log masuk menggunakan password baru.');
+  } catch (err) {
+    logAuthError('reset-password', err);
+    toast(err?.message || friendlyAuthError(err, 'login'), true);
+  } finally {
+    passwordResetBusy = false;
+    btn.disabled = false;
+    btn.textContent = 'Simpan Password Baru';
+  }
 });
 
 $('#logout-btn').addEventListener('click', async () => {
@@ -1536,8 +1624,22 @@ $('#new-password')?.setAttribute('autocomplete', 'new-password');
 $('#confirm-password')?.setAttribute('autocomplete', 'new-password');
 
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && location.hash.includes('type=invite'))) { state.user = session?.user || null; showAuthReset(); return; }
-  if (event === 'SIGNED_OUT') { state.user = null; showAuthLogin(); return; }
+  if (event === 'PASSWORD_RECOVERY') {
+    markPasswordSetup('recovery');
+    state.user = session?.user || null;
+    showAuthReset();
+    return;
+  }
+  if (event === 'SIGNED_IN' && isPasswordSetupPending()) {
+    state.user = session?.user || null;
+    showAuthReset();
+    return;
+  }
+  if (event === 'SIGNED_OUT') {
+    state.user = null;
+    if (!isPasswordSetupPending()) showAuthLogin();
+    return;
+  }
   if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) state.user = session.user;
 });
 
